@@ -1,4 +1,4 @@
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from './constants';
+import { CANVAS_HEIGHT, CANVAS_WIDTH, TILESET_IMAGE_SRC } from './constants';
 import { Game } from './game';
 
 window.addEventListener('load', function () {
@@ -35,25 +35,39 @@ window.addEventListener('load', function () {
     const ctx = canvas.getContext('2d');
 
     // Check for ctx ONE time.
-    if (ctx) {
+    if (ctx) {// ✅ THIS IS THE KEY FOR CRISP PIXEL ART
+        // Disable anti-aliasing to keep pixels sharp when scaling
+        ctx.imageSmoothingEnabled = false;
+
         // Since ctx is valid here, we can start the game loop
         // and pass the valid `ctx` as the required argument.
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
 
         const assets = document.createElement('div');
-        assets.style.display = 'none';
-        assets.innerHTML = `
-            <img id="backgroundImage" src="assets/images/background.jpg">
-        `;
-        document.body.appendChild(assets);
+    assets.style.display = 'none';
+    assets.innerHTML = `
+        <img id="tileset" src="${TILESET_IMAGE_SRC}">
+        <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
+        <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
+    `;
+    document.body.appendChild(assets);
 
-        const backgroundImage = document.getElementById('backgroundImage') as HTMLImageElement;
-        
-        backgroundImage.onload = () => {
-            // Start the loop, passing the confirmed context.
-            gameLoop(performance.now(), ctx);
+    const tileset = document.getElementById('tileset') as HTMLImageElement;
+    const playerIdleSprite = document.getElementById('playerIdleSprite') as HTMLImageElement;
+    const playerWalkSprite = document.getElementById('playerWalkSprite') as HTMLImageElement;
+
+    // Wait for ALL images to be ready before starting
+    const allImages = [tileset, playerIdleSprite, playerWalkSprite];
+    let loadedImages = 0;
+    allImages.forEach(img => {
+        img.onload = () => {
+            loadedImages++;
+            if (loadedImages === allImages.length) {
+                gameLoop(performance.now(), ctx);
+            }
         };
+    });
 
     } else {
         // If ctx is null, the game never starts.

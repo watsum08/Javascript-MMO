@@ -1,34 +1,36 @@
-// Define a type for the structure of the keys object for clarity
-type KeyStates = {
-    up: boolean;
-    down: boolean;
-    left: boolean;
-    right: boolean;
-};
+type Direction = 'up' | 'down' | 'left' | 'right';
 
 export class InputHandler {
-    public keys: KeyStates;
+    // This array will store active keys in the order they are pressed.
+    public activeKeys: Direction[] = [];
 
     constructor() {
-        this.keys = {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-        };
-
         window.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key === 'ArrowUp' || e.key === 'w') this.keys.up = true;
-            if (e.key === 'ArrowDown' || e.key === 's') this.keys.down = true;
-            if (e.key === 'ArrowLeft' || e.key === 'a') this.keys.left = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') this.keys.right = true;
+            let key: Direction | null = null;
+            if (e.key === 'ArrowUp' || e.key === 'w') key = 'up';
+            if (e.key === 'ArrowDown' || e.key === 's') key = 'down';
+            if (e.key === 'ArrowLeft' || e.key === 'a') key = 'left';
+            if (e.key === 'ArrowRight' || e.key === 'd') key = 'right';
+
+            if (key) {
+                // Remove the key if it already exists to move it to the end.
+                this.activeKeys = this.activeKeys.filter(k => k !== key);
+                // Add the newly pressed key to the end of the list.
+                this.activeKeys.push(key);
+            }
         });
 
         window.addEventListener('keyup', (e: KeyboardEvent) => {
-            if (e.key === 'ArrowUp' || e.key === 'w') this.keys.up = false;
-            if (e.key === 'ArrowDown' || e.key === 's') this.keys.down = false;
-            if (e.key === 'ArrowLeft' || e.key === 'a') this.keys.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') this.keys.right = false;
+            let key: Direction | null = null;
+            if (e.key === 'ArrowUp' || e.key === 'w') key = 'up';
+            if (e.key === 'ArrowDown' || e.key === 's') key = 'down';
+            if (e.key === 'ArrowLeft' || e.key === 'a') key = 'left';
+            if (e.key === 'ArrowRight' || e.key === 'd') key = 'right';
+
+            if (key) {
+                // When a key is released, remove it from the array.
+                this.activeKeys = this.activeKeys.filter(k => k !== key);
+            }
         });
     }
 }

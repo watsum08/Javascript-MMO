@@ -1,8 +1,21 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+
+    // This ensures your output is always modern "import/export" syntax.
     "module": "ESNext",
+
+    // This is the key. It allows extension-less imports in your .ts files
+    // because it assumes a modern browser or bundler will handle it.
+    "moduleResolution": "bundler",
+
+    "outDir": "./dist",
     "strict": true,
     "lib": ["DOM", "ESNext"]
-  }
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": false
+  },
+  "include": ["src", "maps", "assets/maps"]
 }
