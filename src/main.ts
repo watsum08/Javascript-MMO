@@ -1,3 +1,4 @@
+import { AudioManager } from './audio'; // 1. Import AudioManager
 import { CANVAS_HEIGHT, CANVAS_WIDTH, TILESET_IMAGE_SRC } from './constants';
 import { Game } from './game';
 
@@ -35,39 +36,52 @@ window.addEventListener('load', function () {
     const ctx = canvas.getContext('2d');
 
     // Check for ctx ONE time.
-    if (ctx) {// ✅ THIS IS THE KEY FOR CRISP PIXEL ART
-        // Disable anti-aliasing to keep pixels sharp when scaling
+    if (ctx) {
         ctx.imageSmoothingEnabled = false;
-
-        // Since ctx is valid here, we can start the game loop
-        // and pass the valid `ctx` as the required argument.
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
 
+        // 2. Add the audio tag to the assets
         const assets = document.createElement('div');
-    assets.style.display = 'none';
-    assets.innerHTML = `
-        <img id="tileset" src="${TILESET_IMAGE_SRC}">
-        <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
-        <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
-    `;
-    document.body.appendChild(assets);
+        assets.style.display = 'none';
+        assets.innerHTML = `
+            <img id="tileset" src="${TILESET_IMAGE_SRC}">
+            <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
+            <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
+            <audio id="backgroundMusic" src="assets/audio/background_music.mp3" preload="auto"></audio>
+        `;
+        document.body.appendChild(assets);
 
-    const tileset = document.getElementById('tileset') as HTMLImageElement;
-    const playerIdleSprite = document.getElementById('playerIdleSprite') as HTMLImageElement;
-    const playerWalkSprite = document.getElementById('playerWalkSprite') as HTMLImageElement;
+        // 3. Create an instance of the AudioManager
+        const audioManager = new AudioManager();
 
-    // Wait for ALL images to be ready before starting
-    const allImages = [tileset, playerIdleSprite, playerWalkSprite];
-    let loadedImages = 0;
-    allImages.forEach(img => {
-        img.onload = () => {
-            loadedImages++;
-            if (loadedImages === allImages.length) {
+        const tileset = document.getElementById('tileset') as HTMLImageElement;
+        const playerIdleSprite = document.getElementById('playerIdleSprite') as HTMLImageElement;
+        const playerWalkSprite = document.getElementById('playerWalkSprite') as HTMLImageElement;
+        // 4. Get the audio element
+        const backgroundMusic = document.getElementById('backgroundMusic') as HTMLAudioElement;
+
+        const allImages = [tileset, playerIdleSprite, playerWalkSprite];
+        const totalAssets = allImages.length + 1; // +1 for the audio file
+        let loadedAssets = 0;
+
+        // 5. Create a shared function to run when any asset is loaded
+        function assetLoaded() {
+            loadedAssets++;
+            if (loadedAssets === totalAssets && ctx) {
+                // When all assets are ready, start the music and the game loop
+                audioManager.playBackgroundMusic();
                 gameLoop(performance.now(), ctx);
             }
-        };
-    });
+        }
+
+        // Attach the loader function to all images
+        allImages.forEach(img => {
+            img.onload = assetLoaded;
+        });
+
+        // Attach the loader function to the audio file
+        backgroundMusic.addEventListener('canplaythrough', assetLoaded, { once: true });
 
     } else {
         // If ctx is null, the game never starts.

@@ -1,4 +1,4 @@
-import { DEBUG_MODE, TILE_SIZE, TILESET_COLUMNS } from "./constants.js";
+import { DEBUG_MODE, TILE_SIZE, TILESET_COLUMNS } from "./constants";
 
 declare const TileMaps: any;
 

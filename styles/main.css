@@ -10,4 +10,7 @@ body {
 canvas {
     background-color: #000;
     display: block;
+    image-rendering: pixelated;
+    width: calc(800px * 4); /* CANVAS_WIDTH * SPRITE_SCALE_FACTOR */
+    height: calc(600px * 4); /* CANVAS_HEIGHT * SPRITE_SCALE_FACTOR */
 }

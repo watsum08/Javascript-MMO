@@ -195,7 +195,7 @@
         {
          "columns":56,
          "firstgid":1,
-         "image":"../assets/maps/slatesV2.png",
+         "image":"../assets/sprites/maps/slatesV2.png",
          "imageheight":704,
          "imagewidth":1792,
          "margin":0,

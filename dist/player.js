@@ -1,4 +1,4 @@
-import { DEBUG_MODE, MAP_HEIGHT, MAP_WIDTH, PLAYER_ANIMATION_SPEED, PLAYER_IDLE_FRAME_COUNT, PLAYER_SCALE_FACTOR, PLAYER_SPEED, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, } from "./constants.js";
+import { DEBUG_MODE, MAP_HEIGHT, MAP_WIDTH, PLAYER_ANIMATION_SPEED, PLAYER_IDLE_FRAME_COUNT, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, PLAYER_WALK_SPEED } from "./constants.js";
 export class Player {
     worldX;
     worldY;
@@ -13,6 +13,7 @@ export class Player {
     animationTimer;
     animationInterval;
     mapManager;
+    scale;
     constructor(mapManager) {
         this.mapManager = mapManager;
         // Find the spawn point defined in Tiled
@@ -28,7 +29,7 @@ export class Player {
             this.worldX = MAP_WIDTH / 2;
             this.worldY = MAP_HEIGHT / 2;
         }
-        this.speed = PLAYER_SPEED;
+        this.speed = PLAYER_WALK_SPEED;
         // Load both images
         this.idleImage = document.getElementById("playerIdleSprite");
         this.walkImage = document.getElementById("playerWalkSprite");
@@ -39,12 +40,13 @@ export class Player {
         this.frameY = 0;
         this.animationTimer = 0;
         this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+        this.scale = 1;
     }
     draw(context) {
         const strideX = PLAYER_SPRITE_WIDTH + PLAYER_SPRITE_GAP;
         const strideY = PLAYER_SPRITE_HEIGHT + PLAYER_SPRITE_GAP;
-        const scaledWidth = PLAYER_SPRITE_WIDTH * PLAYER_SCALE_FACTOR;
-        const scaledHeight = PLAYER_SPRITE_HEIGHT * PLAYER_SCALE_FACTOR;
+        const scaledWidth = PLAYER_SPRITE_WIDTH * this.scale;
+        const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scale;
         const drawX = this.worldX - scaledWidth / 2;
         const drawY = this.worldY - scaledHeight / 2;
         context.drawImage(this.currentImage, PLAYER_SPRITE_PADDING + this.frameX * strideX, PLAYER_SPRITE_PADDING + this.frameY * strideY, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, drawX, drawY, scaledWidth, scaledHeight);
@@ -105,8 +107,9 @@ export class Player {
             }
         }
         const speed = this.speed * deltaTime;
-        const scaledWidth = PLAYER_SPRITE_WIDTH * PLAYER_SCALE_FACTOR;
-        const scaledHeight = PLAYER_SPRITE_HEIGHT * PLAYER_SCALE_FACTOR;
+        // Check if can move or collisions with updated scaled player size
+        const scaledWidth = PLAYER_SPRITE_WIDTH * this.scale;
+        const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scale;
         // --- Check Horizontal Movement ---
         const nextX = this.worldX + moveX * speed;
         if (moveX !== 0) {
