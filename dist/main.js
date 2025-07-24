@@ -1,5 +1,5 @@
 import { AudioManager } from "./audioManager.js"; // 1. Import AudioManager
-import { TILESET_IMAGE_SRC } from "./constants.js";
+import { PLACEHOLDER_IMAGE_SRC, TILESET_IMAGE_SRC } from "./constants.js";
 import { DebugManager } from "./debugManager.js";
 import { Game } from "./game.js";
 import { InputHandler } from "./inputManager.js";
@@ -44,7 +44,7 @@ window.addEventListener("load", function () {
             <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
             <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
-            <audio id="backgroundMusic" src="assets/audio/background_music.wav" preload="auto"></audio>
+            <audio id="backgroundMusic" src="assets/audio/background_music.wa" preload="auto"></audio>
         `;
         document.body.appendChild(assets);
         // 3. Create an instance of the AudioManager
@@ -63,27 +63,39 @@ window.addEventListener("load", function () {
         ];
         const totalAssets = allImages.length + 1; // +1 for the audio file
         let loadedAssets = 0;
-        // 5. Create a shared function to run when any asset is loaded
-        function assetLoaded() {
+        const inputHandler = new InputHandler();
+        const game = new Game(inputHandler);
+        const debugManager = new DebugManager(inputHandler, game);
+        function assetHandled() {
             loadedAssets++;
             if (loadedAssets === totalAssets && ctx) {
-                // When all assets are ready, start the music and the game loop
-                // --- Create All Game Instances Once ---
-                const inputHandler = new InputHandler();
-                const game = new Game(inputHandler); // Pass input handler to the game
-                const debugManager = new DebugManager(inputHandler, game); // Pass input handler to the debugger
+                // This block will now run even if an asset had a 404 error
                 audioManager.playBackgroundMusic();
                 gameLoop(performance.now(), ctx, game, debugManager);
             }
         }
-        // Attach the loader function to all images
+        // Attach the loader and error functions to all images
         allImages.forEach((img) => {
-            img.onload = assetLoaded;
+            // This function will be called if the image loads successfully
+            img.onload = assetHandled;
+            // This function will be called if the image fails to load (e.g., 404 error)
+            img.onerror = () => {
+                console.error(`Failed to load image: ${img.src}. Using placeholder instead.`);
+                // Prevent a potential infinite loop if the placeholder is also broken
+                img.onerror = null;
+                // Tell the broken image to load the placeholder instead.
+                // The `img.onload` event will fire again when the placeholder is ready.
+                img.src = PLACEHOLDER_IMAGE_SRC;
+            };
         });
-        // Attach the loader function to the audio file
-        backgroundMusic.addEventListener("canplaythrough", assetLoaded, {
+        // Do the same for the audio file
+        backgroundMusic.addEventListener("canplaythrough", assetHandled, {
             once: true,
         });
+        backgroundMusic.onerror = () => {
+            console.error(`Failed to load audio: ${backgroundMusic.src}`);
+            assetHandled(); // IMPORTANT: Still count it as "handled"
+        };
     }
     else {
         // If ctx is null, the game never starts.

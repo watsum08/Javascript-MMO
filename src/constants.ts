@@ -13,6 +13,7 @@ export const CANVAS_ZOOM: number = 3;
 // Tileset properties (YOU MUST PROVIDE THIS VALUE)
 export const TILESET_COLUMNS: number = 56; // The number of tile columns in your tileset image
 export const TILESET_IMAGE_SRC: string = "assets/sprites/maps/slatesV2.png";
+export const PLACEHOLDER_IMAGE_SRC: string = "assets/images/placeholder.svg";
 
 // Player specific constants
 export const PLAYER_WALK_SPEED: number = 0.05;
