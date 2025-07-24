@@ -1,10 +1,10 @@
-import { MapManager } from "../mapManager";
 import {
-  CANVAS_ZOOM,
-  MAP_HEIGHT,
-  MAP_WIDTH
+    CANVAS_ZOOM,
+    MAP_HEIGHT,
+    MAP_WIDTH
 } from "./constants";
 import { InputHandler } from "./inputManager";
+import { MapManager } from "./mapManager";
 import { Player } from "./player";
 
 interface Camera {

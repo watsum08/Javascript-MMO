@@ -1,5 +1,5 @@
-import { InputHandler } from "../inputManager";
 import { Game } from "./game";
+import { InputHandler } from "./inputManager";
 
 export class DebugManager {
   private fps: number = 0;
