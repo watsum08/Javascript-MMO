@@ -1,4 +1,4 @@
-import { CANVAS_ZOOM, MAP_HEIGHT, MAP_WIDTH } from "./constants.js";
+import { CANVAS_ZOOM } from "./constants.js";
 import { MapManager } from "./mapManager.js";
 import { Player } from "./player.js";
 export class Game {
@@ -13,6 +13,8 @@ export class Game {
         this.input = inputHandler;
         // Create the mapManager ONCE
         this.mapManager = new MapManager();
+        // load base map
+        this.mapManager.loadMap("mmoMap");
         // Pass the mapManager to the player
         this.player = new Player(this.mapManager);
         this.camera = { x: 0, y: 0 };
@@ -27,8 +29,8 @@ export class Game {
         this.camera.x = this.player.worldX - this.canvasWidth / 2;
         this.camera.y = this.player.worldY - this.canvasHeight / 2;
         // Clamp camera to map boundaries
-        this.camera.x = Math.max(0, Math.min(this.camera.x, MAP_WIDTH - this.canvasWidth));
-        this.camera.y = Math.max(0, Math.min(this.camera.y, MAP_HEIGHT - this.canvasHeight));
+        this.camera.x = Math.max(0, Math.min(this.camera.x, this.mapManager.mapWidth - this.canvasWidth));
+        this.camera.y = Math.max(0, Math.min(this.camera.y, this.mapManager.mapHeight - this.canvasHeight));
     }
     draw(context) {
         context.save();

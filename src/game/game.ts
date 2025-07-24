@@ -1,70 +1,74 @@
-import {
-    CANVAS_ZOOM,
-    MAP_HEIGHT,
-    MAP_WIDTH
-} from "./constants";
+import { CANVAS_ZOOM } from "./constants";
 import { InputHandler } from "./inputManager";
 import { MapManager } from "./mapManager";
 import { Player } from "./player";
 
 interface Camera {
-    x: number;
-    y: number;
+  x: number;
+  y: number;
 }
 
 export class Game {
-    public player: Player;
-    public input: InputHandler;
-    public camera: Camera;
+  public player: Player;
+  public input: InputHandler;
+  public camera: Camera;
 
-    
-    public canvasWidth: number;
-    public canvasHeight: number;
-    
-    private mapManager: MapManager;
+  public canvasWidth: number;
+  public canvasHeight: number;
 
-    constructor(inputHandler: InputHandler) {
-        // Use the inputHandler passed from main.ts
-        this.input = inputHandler;
+  private mapManager: MapManager;
 
-        // Create the mapManager ONCE
-        this.mapManager = new MapManager();
-        
-        // Pass the mapManager to the player
-        this.player = new Player(this.mapManager);
-        
-        this.camera = { x: 0, y: 0 };
+  constructor(inputHandler: InputHandler) {
+    // Use the inputHandler passed from main.ts
+    this.input = inputHandler;
 
-        this.canvasWidth = window.innerWidth / CANVAS_ZOOM;
-        this.canvasHeight = window.innerHeight / CANVAS_ZOOM;
-    }
+    // Create the mapManager ONCE
+    this.mapManager = new MapManager();
 
-    update(deltaTime: number): void {
-        this.input.update();
-        // The player now gets the input handler via the update call
-        this.player.update(this.input, deltaTime);
+    // load base map
+    this.mapManager.loadMap("mmoMap");
 
-        // Update camera position based on the player
-        this.camera.x = this.player.worldX - this.canvasWidth/ 2;
-        this.camera.y = this.player.worldY - this.canvasHeight / 2;
+    // Pass the mapManager to the player
+    this.player = new Player(this.mapManager);
 
-        // Clamp camera to map boundaries
-        this.camera.x = Math.max(0, Math.min(this.camera.x, MAP_WIDTH - this.canvasWidth));
-        this.camera.y = Math.max(0, Math.min(this.camera.y, MAP_HEIGHT - this.canvasHeight));
-    }
+    this.camera = { x: 0, y: 0 };
 
-    draw(context: CanvasRenderingContext2D): void {
-        context.save();
-        context.translate(Math.round(-this.camera.x), Math.round(-this.camera.y));
+    this.canvasWidth = window.innerWidth / CANVAS_ZOOM;
+    this.canvasHeight = window.innerHeight / CANVAS_ZOOM;
+  }
 
-        // Y-sorted draw order
-        this.mapManager.drawLayer(context, "BelowPlayer");
-        this.player.draw(context);
-        this.mapManager.drawLayer(context, "AbovePlayer");
+  update(deltaTime: number): void {
+    this.input.update();
+    // The player now gets the input handler via the update call
+    this.player.update(this.input, deltaTime);
 
-        // Draw debug visuals
-        this.mapManager.drawCollisionDebug(context);
+    // Update camera position based on the player
+    this.camera.x = this.player.worldX - this.canvasWidth / 2;
+    this.camera.y = this.player.worldY - this.canvasHeight / 2;
 
-        context.restore();
-    }
+    // Clamp camera to map boundaries
+    this.camera.x = Math.max(
+      0,
+      Math.min(this.camera.x, this.mapManager.mapWidth - this.canvasWidth)
+    );
+    this.camera.y = Math.max(
+      0,
+      Math.min(this.camera.y, this.mapManager.mapHeight - this.canvasHeight)
+    );
+  }
+
+  draw(context: CanvasRenderingContext2D): void {
+    context.save();
+    context.translate(Math.round(-this.camera.x), Math.round(-this.camera.y));
+
+    // Y-sorted draw order
+    this.mapManager.drawLayer(context, "BelowPlayer");
+    this.player.draw(context);
+    this.mapManager.drawLayer(context, "AbovePlayer");
+
+    // Draw debug visuals
+    this.mapManager.drawCollisionDebug(context);
+
+    context.restore();
+  }
 }

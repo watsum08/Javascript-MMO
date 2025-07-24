@@ -1,4 +1,4 @@
-import { DEBUG_MODE, MAP_HEIGHT, MAP_WIDTH, PLAYER_ANIMATION_SPEED, PLAYER_IDLE_FRAME_COUNT, PLAYER_RUN_FRAME_COUNT, PLAYER_RUN_SPEED, PLAYER_SCALE_FACTOR, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, PLAYER_WALK_SPEED, } from "./constants.js";
+import { DEBUG_MODE, PLAYER_ANIMATION_SPEED, PLAYER_IDLE_FRAME_COUNT, PLAYER_RUN_FRAME_COUNT, PLAYER_RUN_SPEED, PLAYER_SCALE_FACTOR, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, PLAYER_WALK_SPEED, } from "./constants.js";
 export class Player {
     // Public properties
     worldX;
@@ -7,6 +7,8 @@ export class Player {
     // Private properties
     mapManager;
     scaleFactor;
+    width;
+    height;
     // Animation state
     idleImage;
     walkImage;
@@ -34,8 +36,8 @@ export class Player {
         }
         else {
             console.warn("Player spawn point not found in Tiled map. Defaulting to center.");
-            this.worldX = MAP_WIDTH / 2;
-            this.worldY = MAP_HEIGHT / 2;
+            this.worldX = this.mapManager.mapWidth / 2;
+            this.worldY = this.mapManager.mapHeight / 2;
         }
         // 3. Initialize State
         this.state = "idle";
@@ -44,24 +46,25 @@ export class Player {
         this.frameY = 0;
         this.animationTimer = 0;
         this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+        this.width = PLAYER_SPRITE_WIDTH * this.scaleFactor;
+        this.height = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
     }
     // --- Public Methods ---
     update(input, deltaTime) {
         if (!deltaTime)
             return;
+        this.updateScaledSize();
         const moveVector = this.handleInput(input);
         this.updateAnimation(deltaTime);
         this.move(moveVector, deltaTime);
         this.enforceMapBoundaries();
     }
     draw(context) {
-        const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
-        const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
-        const drawX = this.worldX - scaledWidth / 2;
-        const drawY = this.worldY - scaledHeight / 2;
-        this.drawSprite(context, drawX, drawY, scaledWidth, scaledHeight);
+        const drawX = this.worldX - this.width / 2;
+        const drawY = this.worldY - this.height / 2;
+        this.drawSprite(context, drawX, drawY);
         if (DEBUG_MODE) {
-            this.drawDebugBox(context, drawX, drawY, scaledWidth, scaledHeight);
+            this.drawDebugBox(context, drawX, drawY);
         }
     }
     // --- Private Update Helpers ---
@@ -124,6 +127,10 @@ export class Player {
         }
         return { x: moveX, y: moveY };
     }
+    updateScaledSize() {
+        this.width = PLAYER_SPRITE_WIDTH * this.scaleFactor;
+        this.height = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
+    }
     updateAnimation(deltaTime) {
         this.animationTimer += deltaTime;
         if (this.animationTimer > this.animationInterval) {
@@ -140,40 +147,40 @@ export class Player {
     }
     move(moveVector, deltaTime) {
         const speed = this.speed * deltaTime;
-        const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
-        const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
         // Check horizontal movement
         const nextX = this.worldX + moveVector.x * speed;
         if (moveVector.x !== 0) {
-            const checkX = moveVector.x > 0 ? nextX + scaledWidth / 2 : nextX - scaledWidth / 2;
-            if (!this.mapManager.isAreaSolid(checkX, this.worldY - scaledHeight / 2, 1, scaledHeight)) {
+            const checkX = moveVector.x > 0 ? nextX + this.width / 2 : nextX - this.width / 2;
+            if (!this.mapManager.isAreaSolid(checkX, this.worldY - this.height / 2, 1, this.height)) {
                 this.worldX = nextX;
             }
         }
         // Check vertical movement
         const nextY = this.worldY + moveVector.y * speed;
         if (moveVector.y !== 0) {
-            const checkY = moveVector.y > 0 ? nextY + scaledHeight / 2 : nextY - scaledHeight / 2;
-            if (!this.mapManager.isAreaSolid(this.worldX - scaledWidth / 2, checkY, scaledWidth, 1)) {
+            const checkY = moveVector.y > 0 ? nextY + this.height / 2 : nextY - this.height / 2;
+            if (!this.mapManager.isAreaSolid(this.worldX - this.width / 2, checkY, this.width, 1)) {
                 this.worldY = nextY;
             }
         }
     }
     enforceMapBoundaries() {
-        const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
-        const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
-        this.worldX = Math.max(scaledWidth / 2, Math.min(this.worldX, MAP_WIDTH - scaledWidth / 2));
-        this.worldY = Math.max(scaledHeight / 2, Math.min(this.worldY, MAP_HEIGHT - scaledHeight / 2));
+        // 1. Calculate the map's total size in PIXELS
+        const mapPixelWidth = this.mapManager.mapWidth * this.mapManager.tileSize;
+        const mapPixelHeight = this.mapManager.mapHeight * this.mapManager.tileSize;
+        // 2. Use the calculated PIXEL values for boundary checking
+        this.worldX = Math.max(this.width / 2, Math.min(this.worldX, mapPixelWidth - this.width / 2));
+        this.worldY = Math.max(this.height / 2, Math.min(this.worldY, mapPixelHeight - this.height / 2));
     }
     // --- Private Drawing Helpers ---
-    drawSprite(context, drawX, drawY, scaledWidth, scaledHeight) {
+    drawSprite(context, drawX, drawY) {
         const strideX = PLAYER_SPRITE_WIDTH + PLAYER_SPRITE_GAP;
         const strideY = PLAYER_SPRITE_HEIGHT + PLAYER_SPRITE_GAP;
-        context.drawImage(this.currentImage, PLAYER_SPRITE_PADDING + this.frameX * strideX, PLAYER_SPRITE_PADDING + this.frameY * strideY, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, drawX, drawY, scaledWidth, scaledHeight);
+        context.drawImage(this.currentImage, PLAYER_SPRITE_PADDING + this.frameX * strideX, PLAYER_SPRITE_PADDING + this.frameY * strideY, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, drawX, drawY, this.width, this.height);
     }
-    drawDebugBox(context, drawX, drawY, scaledWidth, scaledHeight) {
+    drawDebugBox(context, drawX, drawY) {
         context.strokeStyle = "red";
         context.lineWidth = 2;
-        context.strokeRect(drawX, drawY, scaledWidth, scaledHeight);
+        context.strokeRect(drawX, drawY, this.width, this.height);
     }
 }

@@ -1,14 +1,26 @@
 {
+  "name": "javascript-mmo",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev:server": "tsx watch src/server.ts",
+    "dev:css": "tailwindcss -i ./src/input.css -o ./dist/style.css --watch",
+    "dev": "concurrently \"yarn dev:css\" \"yarn dev:server\"",
+    "start": "node dist/server.js",
+    "build": "rimraf ./dist && tsc && tsc-alias && yarn build:assets",
+    "build:assets": "cp -r ./public/. ./dist/ && tailwindcss -o ./dist/style.css"
+  },
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.11",
-    "tailwindcss": "^4.1.11",
-    "typescript": "^5.8.3"
+    "express": "^4.19.2"
   },
   "devDependencies": {
-    "tsc-alias": "1.8.16"
-  },
-  "scripts": {
-    "dev": "tailwindcss -o styles.css --watch",
-    "build": "tsc && tsc-alias && tailwindcss -o styles.css"
+    "@types/express": "^4.17.21",
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5",
+    "tailwindcss": "^3.4.1",
+    "tsc-alias": "^1.8.8",
+    "tsx": "^4.7.2",
+    "typescript": "^5.3.3"
   }
 }

@@ -1,13 +1,10 @@
-// Assume TileMaps is loaded from mmoMap.js
-declare const TileMaps: any;
-
 // Game-wide constants
 export const DEBUG_MODE: boolean = true;
 export const CANVAS_WIDTH: number = 450;
 export const CANVAS_HEIGHT: number = 300;
-export const TILE_SIZE: number = TileMaps.mmoMap.tilewidth; // 32
-export const MAP_WIDTH: number = TileMaps.mmoMap.width * TILE_SIZE; // 92 * 32 = 2944
-export const MAP_HEIGHT: number = TileMaps.mmoMap.height * TILE_SIZE; // 64 * 32 = 2048
+//export const TILE_SIZE: number = TileMaps.mmoMap.tilewidth; // 32
+//export const MAP_WIDTH: number = TileMaps.mmoMap.width * TILE_SIZE; // 92 * 32 = 2944
+//export const MAP_HEIGHT: number = TileMaps.mmoMap.height * TILE_SIZE; // 64 * 32 = 2048
 export const CANVAS_ZOOM: number = 3;
 
 // Tileset properties (YOU MUST PROVIDE THIS VALUE)
