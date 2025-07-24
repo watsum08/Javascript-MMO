@@ -3,7 +3,7 @@ import {
   MAP_HEIGHT,
   MAP_WIDTH
 } from "./constants";
-import { InputHandler } from "./inputManager";
+import { InputHandler } from "./game/inputManager";
 import { MapManager } from "./mapManager";
 import { Player } from "./player";
 
