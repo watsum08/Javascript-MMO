@@ -4,44 +4,67 @@ import {
   MAP_WIDTH,
   PLAYER_ANIMATION_SPEED,
   PLAYER_IDLE_FRAME_COUNT,
+  PLAYER_RUN_FRAME_COUNT,
+  PLAYER_RUN_SPEED,
+  PLAYER_SCALE_FACTOR,
   PLAYER_SPRITE_GAP,
   PLAYER_SPRITE_HEIGHT,
   PLAYER_SPRITE_PADDING,
   PLAYER_SPRITE_WIDTH,
   PLAYER_WALK_FRAME_COUNT,
-  PLAYER_WALK_SPEED
+  PLAYER_WALK_SPEED,
 } from "./constants";
-import { InputHandler } from "./input";
-import { MapManager } from "./map";
+import { InputHandler } from "./inputManager";
+import { MapManager } from "./mapManager";
+
+// Define the possible states for the player
+type PlayerState = "idle" | "walking" | "running";
 
 export class Player {
+  // Public properties
   public worldX: number;
   public worldY: number;
   public speed: number;
-  // Animation properties
+
+  // Private properties
+  private mapManager: MapManager;
+  private scaleFactor: number;
+
+  // Animation state
   private idleImage: HTMLImageElement;
   private walkImage: HTMLImageElement;
-  private currentImage: HTMLImageElement; // The currently active spritesheet
-  private isMoving: boolean;
+  private runImage: HTMLImageElement;
+  private currentImage: HTMLImageElement;
+  private state: PlayerState;
   private frameX: number;
   private frameY: number;
   private animationTimer: number;
   private animationInterval: number;
-  private mapManager: MapManager;
-  private scale: number;
 
   constructor(mapManager: MapManager) {
     this.mapManager = mapManager;
+    this.scaleFactor = PLAYER_SCALE_FACTOR;
+    this.speed = PLAYER_WALK_SPEED;
 
-    // Find the spawn point defined in Tiled
+    // --- Initialization moved directly into the constructor ---
+
+    // 1. Load Assets
+    this.idleImage = document.getElementById(
+      "playerIdleSprite"
+    ) as HTMLImageElement;
+    this.walkImage = document.getElementById(
+      "playerWalkSprite"
+    ) as HTMLImageElement;
+    this.runImage = document.getElementById(
+      "playerRunSprite"
+    ) as HTMLImageElement;
+
+    // 2. Spawn Player
     const spawnPoint = this.mapManager.findObjectByName("playerSpawn");
-
     if (spawnPoint) {
-      // If we found it, spawn the player there
       this.worldX = spawnPoint.x;
       this.worldY = spawnPoint.y;
     } else {
-      // Otherwise, default to the center of the map (fallback)
       console.warn(
         "Player spawn point not found in Tiled map. Defaulting to center."
       );
@@ -49,88 +72,83 @@ export class Player {
       this.worldY = MAP_HEIGHT / 2;
     }
 
-    this.speed = PLAYER_WALK_SPEED;
-
-    // Load both images
-    this.idleImage = document.getElementById(
-      "playerIdleSprite"
-    ) as HTMLImageElement;
-    this.walkImage = document.getElementById(
-      "playerWalkSprite"
-    ) as HTMLImageElement;
-
-    // Set initial state
+    // 3. Initialize State
+    this.state = "idle";
     this.currentImage = this.idleImage;
-    this.isMoving = false;
     this.frameX = 0;
     this.frameY = 0;
     this.animationTimer = 0;
     this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
-    this.scale = 1;
   }
 
-  draw(context: CanvasRenderingContext2D): void {
-    const strideX = PLAYER_SPRITE_WIDTH + PLAYER_SPRITE_GAP;
-    const strideY = PLAYER_SPRITE_HEIGHT + PLAYER_SPRITE_GAP;
-    const scaledWidth = PLAYER_SPRITE_WIDTH * this.scale;
-    const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scale;
+  // --- Public Methods ---
+
+  public update(input: InputHandler, deltaTime: number): void {
+    if (!deltaTime) return;
+
+    const moveVector = this.handleInput(input);
+    this.updateAnimation(deltaTime);
+    this.move(moveVector, deltaTime);
+    this.enforceMapBoundaries();
+  }
+
+  public draw(context: CanvasRenderingContext2D): void {
+    const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
+    const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
     const drawX = this.worldX - scaledWidth / 2;
     const drawY = this.worldY - scaledHeight / 2;
 
-    context.drawImage(
-      this.currentImage,
-      PLAYER_SPRITE_PADDING + this.frameX * strideX,
-      PLAYER_SPRITE_PADDING + this.frameY * strideY,
-      PLAYER_SPRITE_WIDTH,
-      PLAYER_SPRITE_HEIGHT,
-      drawX,
-      drawY,
-      scaledWidth,
-      scaledHeight
-    );
+    this.drawSprite(context, drawX, drawY, scaledWidth, scaledHeight);
 
-    // Only draw the debug collision box if debug mode is on
     if (DEBUG_MODE) {
-      context.strokeStyle = "red";
-      context.lineWidth = 2;
-      context.strokeRect(drawX, drawY, scaledWidth, scaledHeight);
+      this.drawDebugBox(context, drawX, drawY, scaledWidth, scaledHeight);
     }
   }
 
-  update(input: InputHandler, deltaTime: number): void {
-    if (!deltaTime) return;
+  // --- Private Update Helpers ---
 
-    const lastKey = input.activeKeys[input.activeKeys.length - 1];
-    const wasMoving = this.isMoving;
-    this.isMoving = input.activeKeys.length > 0;
+  private handleInput(input: InputHandler): { x: number; y: number } {
+    const previousState = this.state;
 
-    // --- State Transition Logic ---
-    // If the player just started moving, switch to the walk animation
-    if (this.isMoving && !wasMoving) {
-      this.currentImage = this.walkImage;
-      this.frameX = 0; // Reset animation frame
-    }
-    // If the player just stopped moving, switch to the idle animation
-    if (!this.isMoving && wasMoving) {
-      this.currentImage = this.idleImage;
-      this.frameX = 0; // Reset animation frame
-    }
+    // 1. Read the high-level state directly from the input manager
+    const direction = input.direction;
+    const isRunning = input.isRunning;
 
-    // --- Animation Logic ---
-    this.animationTimer += deltaTime;
-    if (this.animationTimer > this.animationInterval) {
-      const frameCount = this.isMoving
-        ? PLAYER_WALK_FRAME_COUNT
-        : PLAYER_IDLE_FRAME_COUNT;
-      this.frameX = (this.frameX + 1) % frameCount;
-      this.animationTimer = 0;
+    // 2. Determine the player's state
+    if (direction && isRunning) {
+      this.state = "running";
+    } else if (direction) {
+      this.state = "walking";
+    } else {
+      this.state = "idle";
     }
 
-    // --- Movement Logic ---
+    // 3. Set properties based on the current state
+    switch (this.state) {
+      case "idle":
+        this.speed = 0;
+        this.currentImage = this.idleImage;
+        break;
+      case "walking":
+        this.speed = PLAYER_WALK_SPEED;
+        this.currentImage = this.walkImage;
+        break;
+      case "running":
+        this.speed = PLAYER_RUN_SPEED;
+        this.currentImage = this.runImage;
+        break;
+    }
+
+    // 4. Reset animation frame ONLY when the state actually changes
+    if (this.state !== previousState) {
+      this.frameX = 0;
+    }
+
+    // 5. Determine movement vector and sprite direction
     let moveX = 0;
     let moveY = 0;
-    if (this.isMoving) {
-      switch (lastKey) {
+    if (direction) {
+      switch (direction) {
         case "down":
           moveY = 1;
           this.frameY = 0;
@@ -150,21 +168,37 @@ export class Player {
       }
     }
 
+    return { x: moveX, y: moveY };
+  }
+
+  private updateAnimation(deltaTime: number): void {
+    this.animationTimer += deltaTime;
+    if (this.animationTimer > this.animationInterval) {
+      let frameCount = PLAYER_IDLE_FRAME_COUNT;
+      if (this.state === "walking") {
+        frameCount = PLAYER_WALK_FRAME_COUNT;
+      } else if (this.state === "running") {
+        frameCount = PLAYER_RUN_FRAME_COUNT;
+      }
+
+      this.frameX = (this.frameX + 1) % frameCount;
+      this.animationTimer = 0;
+    }
+  }
+
+  private move(moveVector: { x: number; y: number }, deltaTime: number): void {
     const speed = this.speed * deltaTime;
-  
+    const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
+    const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
 
-    // Check if can move or collisions with updated scaled player size
-    
-    const scaledWidth = PLAYER_SPRITE_WIDTH * this.scale;
-    const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scale;
-
-    // --- Check Horizontal Movement ---
-    const nextX = this.worldX + moveX * speed;
-
-    if (moveX !== 0) {
+    // Check horizontal movement
+    const nextX = this.worldX + moveVector.x * speed;
+    if (moveVector.x !== 0) {
+      const checkX =
+        moveVector.x > 0 ? nextX + scaledWidth / 2 : nextX - scaledWidth / 2;
       if (
         !this.mapManager.isAreaSolid(
-          moveX > 0 ? nextX + scaledWidth / 2 - 1 : nextX - scaledWidth / 2,
+          checkX,
           this.worldY - scaledHeight / 2,
           1,
           scaledHeight
@@ -174,14 +208,15 @@ export class Player {
       }
     }
 
-    // --- Check Vertical Movement ---
-    const nextY = this.worldY + moveY * speed;
-
-    if (moveY !== 0) {
+    // Check vertical movement
+    const nextY = this.worldY + moveVector.y * speed;
+    if (moveVector.y !== 0) {
+      const checkY =
+        moveVector.y > 0 ? nextY + scaledHeight / 2 : nextY - scaledHeight / 2;
       if (
         !this.mapManager.isAreaSolid(
           this.worldX - scaledWidth / 2,
-          moveY > 0 ? nextY + scaledHeight / 2 - 1 : nextY - scaledHeight / 2,
+          checkY,
           scaledWidth,
           1
         )
@@ -189,13 +224,56 @@ export class Player {
         this.worldY = nextY;
       }
     }
+  }
 
-    // --- Boundary Checks --- (These are now less critical but good for safety)
-    if (this.worldX - scaledWidth / 2 < 0) this.worldX = scaledWidth / 2;
-    if (this.worldX + scaledWidth / 2 > MAP_WIDTH)
-      this.worldX = MAP_WIDTH - scaledWidth / 2;
-    if (this.worldY - scaledHeight / 2 < 0) this.worldY = scaledHeight / 2;
-    if (this.worldY + scaledHeight / 2 > MAP_HEIGHT)
-      this.worldY = MAP_HEIGHT - scaledHeight / 2;
+  private enforceMapBoundaries(): void {
+    const scaledWidth = PLAYER_SPRITE_WIDTH * this.scaleFactor;
+    const scaledHeight = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
+
+    this.worldX = Math.max(
+      scaledWidth / 2,
+      Math.min(this.worldX, MAP_WIDTH - scaledWidth / 2)
+    );
+    this.worldY = Math.max(
+      scaledHeight / 2,
+      Math.min(this.worldY, MAP_HEIGHT - scaledHeight / 2)
+    );
+  }
+
+  // --- Private Drawing Helpers ---
+
+  private drawSprite(
+    context: CanvasRenderingContext2D,
+    drawX: number,
+    drawY: number,
+    scaledWidth: number,
+    scaledHeight: number
+  ): void {
+    const strideX = PLAYER_SPRITE_WIDTH + PLAYER_SPRITE_GAP;
+    const strideY = PLAYER_SPRITE_HEIGHT + PLAYER_SPRITE_GAP;
+
+    context.drawImage(
+      this.currentImage,
+      PLAYER_SPRITE_PADDING + this.frameX * strideX,
+      PLAYER_SPRITE_PADDING + this.frameY * strideY,
+      PLAYER_SPRITE_WIDTH,
+      PLAYER_SPRITE_HEIGHT,
+      drawX,
+      drawY,
+      scaledWidth,
+      scaledHeight
+    );
+  }
+
+  private drawDebugBox(
+    context: CanvasRenderingContext2D,
+    drawX: number,
+    drawY: number,
+    scaledWidth: number,
+    scaledHeight: number
+  ): void {
+    context.strokeStyle = "red";
+    context.lineWidth = 2;
+    context.strokeRect(drawX, drawY, scaledWidth, scaledHeight);
   }
 }
