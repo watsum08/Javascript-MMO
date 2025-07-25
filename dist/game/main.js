@@ -44,6 +44,7 @@ window.addEventListener("load", function () {
             <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
             <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
+            <img id="playerAttackSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Attack_full.png">
             <audio id="backgroundMusic" src="assets/audio/background_music.mp3" preload="auto"></audio>
         `;
         document.body.appendChild(assets);

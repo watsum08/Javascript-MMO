@@ -12,7 +12,7 @@ export const TILESET_IMAGE_SRC = "assets/sprites/maps/slatesV2.png";
 export const PLACEHOLDER_IMAGE_SRC = "assets/images/placeholder.svg";
 // Player specific constants
 export const PLAYER_WALK_SPEED = 0.05;
-export const PLAYER_RUN_SPEED = 0.10;
+export const PLAYER_RUN_SPEED = 0.1;
 export const PLAYER_SPRITE_WIDTH = 32;
 export const PLAYER_SPRITE_HEIGHT = 32;
 export const PLAYER_SPRITE_PADDING = 16;
@@ -23,3 +23,6 @@ export const PLAYER_ANIMATION_SPEED = 8;
 export const PLAYER_IDLE_FRAME_COUNT = 12; // Frames in the idle animation
 export const PLAYER_WALK_FRAME_COUNT = 6; // Frames in the walking animation
 export const PLAYER_RUN_FRAME_COUNT = 8; // The number of frames in your run animation
+export const PLAYER_ATTACK_FRAME_COUNT = 8;
+export const PLAYER_BASE_ATTACK_COOLDOWN = 5000;
+export const PLAYER_BASE_ATTACK_SPEED = 10;

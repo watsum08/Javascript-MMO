@@ -1,7 +1,9 @@
 import { CANVAS_ZOOM } from "./constants";
+import { EntityManager } from "./entityManager";
 import { InputHandler } from "./inputManager";
 import { MapManager } from "./mapManager";
 import { Player } from "./player";
+import { UIManager } from "./uiManager";
 
 interface Camera {
   x: number;
@@ -17,6 +19,8 @@ export class Game {
   public canvasHeight: number;
 
   private mapManager: MapManager;
+  private entityManager: EntityManager;
+  private uiManager: any;
 
   constructor(inputHandler: InputHandler) {
     // Use the inputHandler passed from main.ts
@@ -24,12 +28,14 @@ export class Game {
 
     // Create the mapManager ONCE
     this.mapManager = new MapManager();
+    this.entityManager = new EntityManager(); // 3. Create an instance of the entity manager
+    this.uiManager = new UIManager(); // 3. Create an instance of the UI manager
 
     // load base map
     this.mapManager.loadMap("mmoMap");
 
     // Pass the mapManager to the player
-    this.player = new Player(this.mapManager);
+    this.player = new Player(this.mapManager, this.entityManager);
 
     this.camera = { x: 0, y: 0 };
 
@@ -39,8 +45,11 @@ export class Game {
 
   update(deltaTime: number): void {
     this.input.update();
+
     // The player now gets the input handler via the update call
     this.player.update(this.input, deltaTime);
+
+    this.entityManager.update(deltaTime);
 
     // Update camera position based on the player
     this.camera.x = this.player.worldX - this.canvasWidth / 2;
@@ -53,7 +62,10 @@ export class Game {
     );
     this.camera.y = Math.max(
       0,
-      Math.min(this.camera.y, this.mapManager.mapPixelHeight - this.canvasHeight)
+      Math.min(
+        this.camera.y,
+        this.mapManager.mapPixelHeight - this.canvasHeight
+      )
     );
   }
 
@@ -63,6 +75,10 @@ export class Game {
 
     // Y-sorted draw order
     this.mapManager.drawLayer(context, "BelowPlayer");
+
+    // 6. Draw the entities (enemies, etc.)
+    this.entityManager.draw(context);
+
     this.player.draw(context);
     this.mapManager.drawLayer(context, "AbovePlayer");
 
@@ -70,5 +86,8 @@ export class Game {
     this.mapManager.drawCollisionDebug(context);
 
     context.restore();
+
+    // 4. Draw the UI on top of everything, not affected by the camera
+    this.uiManager.draw(context, this.player);
   }
 }
