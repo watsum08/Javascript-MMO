@@ -24,5 +24,10 @@ export const PLAYER_IDLE_FRAME_COUNT = 12; // Frames in the idle animation
 export const PLAYER_WALK_FRAME_COUNT = 6; // Frames in the walking animation
 export const PLAYER_RUN_FRAME_COUNT = 8; // The number of frames in your run animation
 export const PLAYER_ATTACK_FRAME_COUNT = 8;
+// --- Player Stats ---
+export const PLAYER_BASE_HEALTH = 150;
+export const PLAYER_BASE_MANA = 100;
+export const PLAYER_BASE_HEALTH_REGEN = 1.5; // Health per second
+export const PLAYER_BASE_MANA_REGEN = 1; // Mana per second
 export const PLAYER_BASE_ATTACK_COOLDOWN = 5000;
 export const PLAYER_BASE_ATTACK_SPEED = 10;

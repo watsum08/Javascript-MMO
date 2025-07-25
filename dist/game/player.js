@@ -1,9 +1,14 @@
-import { DEBUG_MODE, PLAYER_ANIMATION_SPEED, PLAYER_IDLE_FRAME_COUNT, PLAYER_RUN_FRAME_COUNT, PLAYER_RUN_SPEED, PLAYER_SCALE_FACTOR, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, PLAYER_WALK_SPEED, } from "./constants.js";
+import { DEBUG_MODE, PLAYER_ANIMATION_SPEED, PLAYER_BASE_HEALTH, PLAYER_BASE_HEALTH_REGEN, PLAYER_BASE_MANA, PLAYER_BASE_MANA_REGEN, PLAYER_IDLE_FRAME_COUNT, PLAYER_RUN_FRAME_COUNT, PLAYER_RUN_SPEED, PLAYER_SCALE_FACTOR, PLAYER_SPRITE_GAP, PLAYER_SPRITE_HEIGHT, PLAYER_SPRITE_PADDING, PLAYER_SPRITE_WIDTH, PLAYER_WALK_FRAME_COUNT, PLAYER_WALK_SPEED, } from "./constants.js";
 import { PlayerSkills } from "./skill.js";
 export class Player {
     worldX;
     worldY;
     speed;
+    // --- Public Stats for UI ---
+    health;
+    maxHealth;
+    mana;
+    maxMana;
     mapManager;
     entityManager;
     scaleFactor;
@@ -19,11 +24,20 @@ export class Player {
     skillCooldowns;
     baseAttackCooldownMultiplier = 1.0;
     attackHitbox = null;
+    healthRegenRate;
+    manaRegenRate;
     constructor(mapManager, entityManager) {
         this.mapManager = mapManager;
         this.entityManager = entityManager;
         this.scaleFactor = PLAYER_SCALE_FACTOR;
         this.speed = PLAYER_WALK_SPEED;
+        // --- Initialize Health and Mana ---
+        this.maxHealth = PLAYER_BASE_HEALTH;
+        this.health = this.maxHealth;
+        this.maxMana = PLAYER_BASE_MANA;
+        this.mana = this.maxMana;
+        this.healthRegenRate = PLAYER_BASE_HEALTH_REGEN;
+        this.manaRegenRate = PLAYER_BASE_MANA_REGEN;
         this.spriteSheets = new Map();
         for (const skillKey in PlayerSkills) {
             const skill = PlayerSkills[skillKey];
@@ -69,6 +83,7 @@ export class Player {
     update(input, deltaTime) {
         if (!deltaTime)
             return;
+        this.regenerate(deltaTime); // NEW: Regenerate health and mana
         this.updateScaledSize();
         const moveVector = this.handleInput(input);
         this.updateAnimation(deltaTime);
@@ -157,62 +172,6 @@ export class Player {
                 break;
         }
     }
-    performAttack(skillKey) {
-        const skill = PlayerSkills[skillKey];
-        if (!skill)
-            return;
-        this.state = "attacking";
-        this.frameX = 0;
-        this.skillCooldowns.set(skillKey, Date.now());
-        this.currentImage = this.spriteSheets.get(skillKey);
-        this.speed = 0;
-        this.animationInterval = 1000 / skill.animationSpeed;
-        const hitbox = { x: 0, y: 0, width: 0, height: 0 };
-        const playerLeft = this.worldX - this.width / 2;
-        const playerTop = this.worldY - this.height / 2;
-        switch (this.frameY) {
-            case 0:
-                hitbox.width = this.width;
-                hitbox.height = this.height / 2;
-                hitbox.x = playerLeft;
-                hitbox.y = this.worldY;
-                break;
-            case 1:
-                hitbox.width = this.width / 2;
-                hitbox.height = this.height;
-                hitbox.x = playerLeft;
-                hitbox.y = playerTop;
-                break;
-            case 2:
-                hitbox.width = this.width / 2;
-                hitbox.height = this.height;
-                hitbox.x = this.worldX;
-                hitbox.y = playerTop;
-                break;
-            case 3:
-                hitbox.width = this.width;
-                hitbox.height = this.height / 2;
-                hitbox.x = playerLeft;
-                hitbox.y = playerTop;
-                break;
-        }
-        this.attackHitbox = hitbox;
-        for (const enemy of this.entityManager.enemies) {
-            const enemyLeft = enemy.worldX - enemy.width / 2;
-            const enemyTop = enemy.worldY - enemy.height / 2;
-            if (hitbox.x < enemyLeft + enemy.width &&
-                hitbox.x + hitbox.width > enemyLeft &&
-                hitbox.y < enemyTop + enemy.height &&
-                hitbox.y + hitbox.height > enemyTop) {
-                enemy.takeDamage(skill.damage);
-            }
-        }
-    }
-    canAttack(skillKey) {
-        const lastUse = this.skillCooldowns.get(skillKey) || 0;
-        const cooldown = this.getAttackCooldown(skillKey);
-        return Date.now() - lastUse > cooldown;
-    }
     updateAnimation(deltaTime) {
         this.animationTimer += deltaTime;
         if (this.animationTimer > this.animationInterval) {
@@ -290,5 +249,79 @@ export class Player {
         const strideX = PLAYER_SPRITE_WIDTH + PLAYER_SPRITE_GAP;
         const strideY = PLAYER_SPRITE_HEIGHT + PLAYER_SPRITE_GAP;
         context.drawImage(this.currentImage, PLAYER_SPRITE_PADDING + this.frameX * strideX, PLAYER_SPRITE_PADDING + this.frameY * strideY, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, drawX, drawY, this.width, this.height);
+    }
+    performAttack(skillKey) {
+        const skill = PlayerSkills[skillKey];
+        if (!skill)
+            return;
+        // --- UPDATED: Subtract mana cost ---
+        this.mana -= skill.manaCost;
+        this.state = "attacking";
+        this.frameX = 0;
+        this.skillCooldowns.set(skillKey, Date.now());
+        this.currentImage = this.spriteSheets.get(skillKey);
+        this.speed = 0;
+        this.animationInterval = 1000 / skill.animationSpeed;
+        const hitbox = { x: 0, y: 0, width: 0, height: 0 };
+        const playerLeft = this.worldX - this.width / 2;
+        const playerTop = this.worldY - this.height / 2;
+        switch (this.frameY) {
+            case 0:
+                hitbox.width = this.width;
+                hitbox.height = this.height / 2;
+                hitbox.x = playerLeft;
+                hitbox.y = this.worldY;
+                break;
+            case 1:
+                hitbox.width = this.width / 2;
+                hitbox.height = this.height;
+                hitbox.x = playerLeft;
+                hitbox.y = playerTop;
+                break;
+            case 2:
+                hitbox.width = this.width / 2;
+                hitbox.height = this.height;
+                hitbox.x = this.worldX;
+                hitbox.y = playerTop;
+                break;
+            case 3:
+                hitbox.width = this.width;
+                hitbox.height = this.height / 2;
+                hitbox.x = playerLeft;
+                hitbox.y = playerTop;
+                break;
+        }
+        this.attackHitbox = hitbox;
+        for (const enemy of this.entityManager.enemies) {
+            const enemyLeft = enemy.worldX - enemy.width / 2;
+            const enemyTop = enemy.worldY - enemy.height / 2;
+            if (hitbox.x < enemyLeft + enemy.width &&
+                hitbox.x + hitbox.width > enemyLeft &&
+                hitbox.y < enemyTop + enemy.height &&
+                hitbox.y + hitbox.height > enemyTop) {
+                enemy.takeDamage(skill.damage);
+            }
+        }
+    }
+    canAttack(skillKey) {
+        const lastUse = this.skillCooldowns.get(skillKey) || 0;
+        const cooldown = this.getAttackCooldown(skillKey);
+        return Date.now() - lastUse > cooldown;
+    }
+    regenerate(deltaTime) {
+        // Regenerate health
+        if (this.health < this.maxHealth) {
+            this.health += this.healthRegenRate * (deltaTime / 1000);
+            if (this.health > this.maxHealth) {
+                this.health = this.maxHealth;
+            }
+        }
+        // Regenerate mana
+        if (this.mana < this.maxMana) {
+            this.mana += this.manaRegenRate * (deltaTime / 1000);
+            if (this.mana > this.maxMana) {
+                this.mana = this.maxMana;
+            }
+        }
     }
 }

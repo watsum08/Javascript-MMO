@@ -6,6 +6,7 @@ export interface Skill {
     frameCount: number;
     animationSpeed: number; // Frames per second
     spriteSheetId: string; // The ID of the <img> tag for the animation
+    manaCost: number; // The amount of mana the skill costs to use
 }
 
 // The central "Skill Book" for the player.
@@ -17,7 +18,8 @@ export const PlayerSkills: Record<string, Skill> = {
         cooldown: 5000, // 5 seconds
         frameCount: 6,
         animationSpeed: 15,
-        spriteSheetId: 'playerAttackSprite'
+        spriteSheetId: 'playerAttackSprite',
+        manaCost: 0 // Basic attack costs no mana
     },
     'heavy': {
         name: 'Heavy Attack',
@@ -25,6 +27,7 @@ export const PlayerSkills: Record<string, Skill> = {
         cooldown: 12000, // 12 seconds
         frameCount: 8, // Assuming heavy attack has more frames
         animationSpeed: 10, // Assuming heavy attack is slower
-        spriteSheetId: 'playerHeavyAttackSprite'
+        spriteSheetId: 'playerHeavyAttackSprite',
+        manaCost: 20 // Heavy attack costs 20 mana
     }
 };

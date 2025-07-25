@@ -1,6 +1,10 @@
 import {
   DEBUG_MODE,
   PLAYER_ANIMATION_SPEED,
+  PLAYER_BASE_HEALTH,
+  PLAYER_BASE_HEALTH_REGEN,
+  PLAYER_BASE_MANA,
+  PLAYER_BASE_MANA_REGEN,
   PLAYER_IDLE_FRAME_COUNT,
   PLAYER_RUN_FRAME_COUNT,
   PLAYER_RUN_SPEED,
@@ -31,6 +35,12 @@ export class Player {
   public worldY: number;
   public speed: number;
 
+  // --- Public Stats for UI ---
+  public health: number;
+  public maxHealth: number;
+  public mana: number;
+  public maxMana: number;
+
   private mapManager: MapManager;
   private entityManager: EntityManager;
   private scaleFactor: number;
@@ -49,11 +59,22 @@ export class Player {
   private baseAttackCooldownMultiplier: number = 1.0;
   private attackHitbox: Hitbox | null = null;
 
+  private healthRegenRate: number;
+  private manaRegenRate: number;
+
   constructor(mapManager: MapManager, entityManager: EntityManager) {
     this.mapManager = mapManager;
     this.entityManager = entityManager;
     this.scaleFactor = PLAYER_SCALE_FACTOR;
     this.speed = PLAYER_WALK_SPEED;
+
+    // --- Initialize Health and Mana ---
+    this.maxHealth = PLAYER_BASE_HEALTH;
+    this.health = this.maxHealth;
+    this.maxMana = PLAYER_BASE_MANA;
+    this.mana = this.maxMana;
+    this.healthRegenRate = PLAYER_BASE_HEALTH_REGEN;
+    this.manaRegenRate = PLAYER_BASE_MANA_REGEN;
 
     this.spriteSheets = new Map();
     for (const skillKey in PlayerSkills) {
@@ -115,6 +136,7 @@ export class Player {
 
   public update(input: InputManager, deltaTime: number): void {
     if (!deltaTime) return;
+    this.regenerate(deltaTime); // NEW: Regenerate health and mana
     this.updateScaledSize();
     const moveVector = this.handleInput(input);
     this.updateAnimation(deltaTime);
@@ -209,69 +231,6 @@ export class Player {
         this.currentImage = this.spriteSheets.get("run")!;
         break;
     }
-  }
-
-  private performAttack(skillKey: string): void {
-    const skill = PlayerSkills[skillKey];
-    if (!skill) return;
-
-    this.state = "attacking";
-    this.frameX = 0;
-    this.skillCooldowns.set(skillKey, Date.now());
-    this.currentImage = this.spriteSheets.get(skillKey)!;
-    this.speed = 0;
-    this.animationInterval = 1000 / skill.animationSpeed;
-
-    const hitbox: Hitbox = { x: 0, y: 0, width: 0, height: 0 };
-    const playerLeft = this.worldX - this.width / 2;
-    const playerTop = this.worldY - this.height / 2;
-
-    switch (this.frameY) {
-      case 0:
-        hitbox.width = this.width;
-        hitbox.height = this.height / 2;
-        hitbox.x = playerLeft;
-        hitbox.y = this.worldY;
-        break;
-      case 1:
-        hitbox.width = this.width / 2;
-        hitbox.height = this.height;
-        hitbox.x = playerLeft;
-        hitbox.y = playerTop;
-        break;
-      case 2:
-        hitbox.width = this.width / 2;
-        hitbox.height = this.height;
-        hitbox.x = this.worldX;
-        hitbox.y = playerTop;
-        break;
-      case 3:
-        hitbox.width = this.width;
-        hitbox.height = this.height / 2;
-        hitbox.x = playerLeft;
-        hitbox.y = playerTop;
-        break;
-    }
-    this.attackHitbox = hitbox;
-
-    for (const enemy of this.entityManager.enemies) {
-      const enemyLeft = enemy.worldX - enemy.width / 2;
-      const enemyTop = enemy.worldY - enemy.height / 2;
-      if (
-        hitbox.x < enemyLeft + enemy.width &&
-        hitbox.x + hitbox.width > enemyLeft &&
-        hitbox.y < enemyTop + enemy.height &&
-        hitbox.y + hitbox.height > enemyTop
-      ) {
-        enemy.takeDamage(skill.damage);
-      }
-    }
-  }
-
-  private canAttack(skillKey: string): boolean {
-    const lastUse = this.skillCooldowns.get(skillKey) || 0;
-    const cooldown = this.getAttackCooldown(skillKey);
-    return Date.now() - lastUse > cooldown;
   }
 
   private updateAnimation(deltaTime: number): void {
@@ -393,5 +352,88 @@ export class Player {
       this.width,
       this.height
     );
+  }
+
+  private performAttack(skillKey: string): void {
+    const skill = PlayerSkills[skillKey];
+    if (!skill) return;
+
+    // --- UPDATED: Subtract mana cost ---
+    this.mana -= skill.manaCost;
+
+    this.state = "attacking";
+    this.frameX = 0;
+    this.skillCooldowns.set(skillKey, Date.now());
+    this.currentImage = this.spriteSheets.get(skillKey)!;
+    this.speed = 0;
+    this.animationInterval = 1000 / skill.animationSpeed;
+
+    const hitbox: Hitbox = { x: 0, y: 0, width: 0, height: 0 };
+    const playerLeft = this.worldX - this.width / 2;
+    const playerTop = this.worldY - this.height / 2;
+
+    switch (this.frameY) {
+      case 0:
+        hitbox.width = this.width;
+        hitbox.height = this.height / 2;
+        hitbox.x = playerLeft;
+        hitbox.y = this.worldY;
+        break;
+      case 1:
+        hitbox.width = this.width / 2;
+        hitbox.height = this.height;
+        hitbox.x = playerLeft;
+        hitbox.y = playerTop;
+        break;
+      case 2:
+        hitbox.width = this.width / 2;
+        hitbox.height = this.height;
+        hitbox.x = this.worldX;
+        hitbox.y = playerTop;
+        break;
+      case 3:
+        hitbox.width = this.width;
+        hitbox.height = this.height / 2;
+        hitbox.x = playerLeft;
+        hitbox.y = playerTop;
+        break;
+    }
+    this.attackHitbox = hitbox;
+
+    for (const enemy of this.entityManager.enemies) {
+      const enemyLeft = enemy.worldX - enemy.width / 2;
+      const enemyTop = enemy.worldY - enemy.height / 2;
+      if (
+        hitbox.x < enemyLeft + enemy.width &&
+        hitbox.x + hitbox.width > enemyLeft &&
+        hitbox.y < enemyTop + enemy.height &&
+        hitbox.y + hitbox.height > enemyTop
+      ) {
+        enemy.takeDamage(skill.damage);
+      }
+    }
+  }
+
+  private canAttack(skillKey: string): boolean {
+    const lastUse = this.skillCooldowns.get(skillKey) || 0;
+    const cooldown = this.getAttackCooldown(skillKey);
+    return Date.now() - lastUse > cooldown;
+  }
+
+  private regenerate(deltaTime: number): void {
+    // Regenerate health
+    if (this.health < this.maxHealth) {
+      this.health += this.healthRegenRate * (deltaTime / 1000);
+      if (this.health > this.maxHealth) {
+        this.health = this.maxHealth;
+      }
+    }
+    // Regenerate mana
+    if (this.mana < this.maxMana) {
+      this.mana += this.manaRegenRate * (deltaTime / 1000);
+      if (this.mana > this.maxMana) {
+        this.mana = this.maxMana;
+      }
+    }
   }
 }

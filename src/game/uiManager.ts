@@ -15,7 +15,58 @@ export class UIManager {
     player: Player,
     input: InputManager
   ): void {
+    this.drawPlayerStats(context, player); // Draw stats first
     this.drawSkillBar(context, player, input);
+  }
+
+  private drawPlayerStats(
+    context: CanvasRenderingContext2D,
+    player: Player
+  ): void {
+    const barWidth = 200;
+    const barHeight = 20;
+    const x = 15;
+    const y = 15;
+
+    // --- Draw Health Bar ---
+    // Background
+    context.fillStyle = "rgba(0, 0, 0, 0.7)";
+    context.fillRect(x - 2, y - 2, barWidth + 4, barHeight + 4);
+    context.fillStyle = "#440000"; // Dark red
+    context.fillRect(x, y, barWidth, barHeight);
+    // Foreground
+    const healthPercent = player.health / player.maxHealth;
+    context.fillStyle = "#ff4444"; // Bright red
+    context.fillRect(x, y, barWidth * healthPercent, barHeight);
+    // Text
+    context.fillStyle = "white";
+    context.font = "bold 14px Arial";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(
+      `${Math.round(player.health)} / ${player.maxHealth}`,
+      x + barWidth / 2,
+      y + barHeight / 2
+    );
+
+    // --- Draw Mana Bar ---
+    const manaY = y + barHeight + 8; // Position it below the health bar
+    // Background
+    context.fillStyle = "rgba(0, 0, 0, 0.7)";
+    context.fillRect(x - 2, manaY - 2, barWidth + 4, barHeight + 4);
+    context.fillStyle = "#002266"; // Dark blue
+    context.fillRect(x, manaY, barWidth, barHeight);
+    // Foreground
+    const manaPercent = player.mana / player.maxMana;
+    context.fillStyle = "#4488ff"; // Bright blue
+    context.fillRect(x, manaY, barWidth * manaPercent, barHeight);
+    // Text
+    context.fillStyle = "white";
+    context.fillText(
+      `${Math.round(player.mana)} / ${player.maxMana}`,
+      x + barWidth / 2,
+      manaY + barHeight / 2
+    );
   }
 
   private drawSkillBar(
