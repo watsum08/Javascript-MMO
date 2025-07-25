@@ -45,6 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
 const loginMusic = document.getElementById("loginMusic") as HTMLAudioElement;
 window.onmouseover = () => {
   if (loginMusic.paused) {
-    //loginMusic.play();
+    loginMusic.play();
   }
 };

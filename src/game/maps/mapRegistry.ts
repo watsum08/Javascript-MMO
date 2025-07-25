@@ -11,7 +11,7 @@ const onLoadCallbacks: ((name: string, data: any) => void)[] = [];
  * @param data The map data object (usually from a Tiled export).
  */
 export function registerTileMap(name: string, data: any): void {
-  console.log(`Registering map: ${name}`);
+  console.log(`Loading tilemap: ${name}`);
   TileMaps[name] = data;
 
   // Call all registered callbacks to notify them of the new map.

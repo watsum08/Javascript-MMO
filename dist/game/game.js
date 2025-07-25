@@ -29,8 +29,8 @@ export class Game {
         this.camera.x = this.player.worldX - this.canvasWidth / 2;
         this.camera.y = this.player.worldY - this.canvasHeight / 2;
         // Clamp camera to map boundaries
-        this.camera.x = Math.max(0, Math.min(this.camera.x, this.mapManager.mapWidth - this.canvasWidth));
-        this.camera.y = Math.max(0, Math.min(this.camera.y, this.mapManager.mapHeight - this.canvasHeight));
+        this.camera.x = Math.max(0, Math.min(this.camera.x, this.mapManager.mapPixelWidth - this.canvasWidth));
+        this.camera.y = Math.max(0, Math.min(this.camera.y, this.mapManager.mapPixelHeight - this.canvasHeight));
     }
     draw(context) {
         context.save();

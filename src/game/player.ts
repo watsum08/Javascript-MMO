@@ -232,19 +232,14 @@ export class Player {
   }
 
   private enforceMapBoundaries(): void {
-    // 1. Calculate the map's total size in PIXELS
-    const mapPixelWidth = this.mapManager.mapWidth * this.mapManager.tileSize;
-    const mapPixelHeight = this.mapManager.mapHeight * this.mapManager.tileSize;
-
-    // 2. Use the calculated PIXEL values for boundary checking
     this.worldX = Math.max(
       this.width / 2,
-      Math.min(this.worldX, mapPixelWidth - this.width / 2)
+      Math.min(this.worldX, this.mapManager.mapPixelWidth - this.width / 2)
     );
 
     this.worldY = Math.max(
       this.height / 2,
-      Math.min(this.worldY, mapPixelHeight - this.height / 2)
+      Math.min(this.worldY, this.mapManager.mapPixelHeight - this.height / 2)
     );
   }
 

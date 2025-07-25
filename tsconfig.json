@@ -17,5 +17,5 @@
     "resolveFullPaths": true,
     "verbose": false
   },
-  "include": ["src", "maps", "assets/maps"]
+  "include": ["src", "src/game/maps", "assets/maps"]
 }

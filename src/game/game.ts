@@ -49,11 +49,11 @@ export class Game {
     // Clamp camera to map boundaries
     this.camera.x = Math.max(
       0,
-      Math.min(this.camera.x, this.mapManager.mapWidth - this.canvasWidth)
+      Math.min(this.camera.x, this.mapManager.mapPixelWidth - this.canvasWidth)
     );
     this.camera.y = Math.max(
       0,
-      Math.min(this.camera.y, this.mapManager.mapHeight - this.canvasHeight)
+      Math.min(this.camera.y, this.mapManager.mapPixelHeight - this.canvasHeight)
     );
   }
 
