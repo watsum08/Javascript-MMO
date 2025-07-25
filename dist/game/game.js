@@ -12,9 +12,9 @@ export class Game {
     mapManager;
     entityManager;
     uiManager;
-    constructor(inputHandler) {
-        // Use the inputHandler passed from main.ts
-        this.input = inputHandler;
+    constructor(InputManager) {
+        // Use the InputManager passed from main.ts
+        this.input = InputManager;
         // Create the mapManager ONCE
         this.mapManager = new MapManager();
         this.entityManager = new EntityManager(); // 3. Create an instance of the entity manager
@@ -52,6 +52,6 @@ export class Game {
         this.mapManager.drawCollisionDebug(context);
         context.restore();
         // 4. Draw the UI on top of everything, not affected by the camera
-        this.uiManager.draw(context, this.player);
+        this.uiManager.draw(context, this.player, this.input);
     }
 }

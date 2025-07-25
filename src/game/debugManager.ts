@@ -1,15 +1,15 @@
 import { Game } from "./game";
-import { InputHandler } from "./inputManager";
+import { InputManager } from "./inputManager";
 
 export class DebugManager {
   private fps: number = 0;
   private frameCount: number = 0;
   private lastFpsUpdateTime: number = 0;
-  private inputHandler: InputHandler;
+  private InputManager: InputManager;
   private game: Game;
 
-  constructor(inputHandler: InputHandler, gameInstance: Game) {
-    this.inputHandler = inputHandler;
+  constructor(InputManager: InputManager, gameInstance: Game) {
+    this.InputManager = InputManager;
     this.game = gameInstance;
   }
 
@@ -36,8 +36,8 @@ export class DebugManager {
     context.fillStyle = color;
     context.fillText(`FPS: ${this.fps}`, this.game.canvasWidth - 60, 15);
 
-    // Draw InputHandler state
-    const keysText = "direction: " + `${this.inputHandler.direction}`;
+    // Draw InputManager state
+    const keysText = "direction: " + `${this.InputManager.direction}`;
     context.fillText(keysText, margin, 50);
 
     context.restore();

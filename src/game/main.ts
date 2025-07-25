@@ -1,8 +1,12 @@
 import { AudioManager } from "./audioManager"; // 1. Import AudioManager
-import { PLACEHOLDER_IMAGE_SRC, TILESET_IMAGE_SRC } from "./constants";
+import {
+  CANVAS_ZOOM,
+  PLACEHOLDER_IMAGE_SRC,
+  TILESET_IMAGE_SRC,
+} from "./constants";
 import { DebugManager } from "./debugManager";
 import { Game } from "./game";
-import { InputHandler } from "./inputManager";
+import { InputManager } from "./inputManager";
 
 window.addEventListener("load", function () {
   const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
@@ -48,8 +52,8 @@ window.addEventListener("load", function () {
   // Check for ctx ONE time.
   if (ctx) {
     ctx.imageSmoothingEnabled = false;
-    canvas.width = window.innerWidth / 3;
-    canvas.height = window.innerHeight / 3;
+    canvas.width = window.innerWidth / CANVAS_ZOOM;
+    canvas.height = window.innerHeight / CANVAS_ZOOM;
 
     // 2. Add the audio tag to the assets
     const assets = document.createElement("div");
@@ -60,6 +64,7 @@ window.addEventListener("load", function () {
             <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
             <img id="playerAttackSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Attack_full.png">
+            <img id="playerHeavyAttackSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_Attack_full.png">
             <audio id="backgroundMusic" src="assets/audio/background_music.mp3" preload="auto"></audio>
         `;
     document.body.appendChild(assets);
@@ -91,9 +96,9 @@ window.addEventListener("load", function () {
     const totalAssets = allImages.length + 1; // +1 for the audio file
     let loadedAssets = 0;
 
-    const inputHandler = new InputHandler();
-    const game = new Game(inputHandler);
-    const debugManager = new DebugManager(inputHandler, game);
+    const inputManager = new InputManager();
+    const game = new Game(inputManager);
+    const debugManager = new DebugManager(inputManager, game);
 
     function assetHandled() {
       loadedAssets++;

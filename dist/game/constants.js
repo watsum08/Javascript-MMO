@@ -5,7 +5,7 @@ export const CANVAS_HEIGHT = 300;
 //export const TILE_SIZE: number = TileMaps.mmoMap.tilewidth; // 32
 //export const MAP_WIDTH: number = TileMaps.mmoMap.width * TILE_SIZE; // 92 * 32 = 2944
 //export const MAP_HEIGHT: number = TileMaps.mmoMap.height * TILE_SIZE; // 64 * 32 = 2048
-export const CANVAS_ZOOM = 3;
+export const CANVAS_ZOOM = 2.5;
 // Tileset properties (YOU MUST PROVIDE THIS VALUE)
 export const TILESET_COLUMNS = 56; // The number of tile columns in your tileset image
 export const TILESET_IMAGE_SRC = "assets/sprites/maps/slatesV2.png";

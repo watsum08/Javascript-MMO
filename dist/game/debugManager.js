@@ -2,10 +2,10 @@ export class DebugManager {
     fps = 0;
     frameCount = 0;
     lastFpsUpdateTime = 0;
-    inputHandler;
+    InputManager;
     game;
-    constructor(inputHandler, gameInstance) {
-        this.inputHandler = inputHandler;
+    constructor(InputManager, gameInstance) {
+        this.InputManager = InputManager;
         this.game = gameInstance;
     }
     update(currentTime) {
@@ -27,8 +27,8 @@ export class DebugManager {
         context.font = font;
         context.fillStyle = color;
         context.fillText(`FPS: ${this.fps}`, this.game.canvasWidth - 60, 15);
-        // Draw InputHandler state
-        const keysText = "direction: " + `${this.inputHandler.direction}`;
+        // Draw InputManager state
+        const keysText = "direction: " + `${this.InputManager.direction}`;
         context.fillText(keysText, margin, 50);
         context.restore();
     }

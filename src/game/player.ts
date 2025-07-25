@@ -1,9 +1,6 @@
 import {
   DEBUG_MODE,
   PLAYER_ANIMATION_SPEED,
-  PLAYER_ATTACK_FRAME_COUNT,
-  PLAYER_BASE_ATTACK_COOLDOWN,
-  PLAYER_BASE_ATTACK_SPEED,
   PLAYER_IDLE_FRAME_COUNT,
   PLAYER_RUN_FRAME_COUNT,
   PLAYER_RUN_SPEED,
@@ -16,12 +13,12 @@ import {
   PLAYER_WALK_SPEED,
 } from "./constants";
 import { EntityManager } from "./entityManager";
-import { InputHandler } from "./inputManager";
+import { InputManager } from "./inputManager";
 import { MapManager } from "./mapManager";
+import { PlayerSkills } from "./skill";
 
 type PlayerState = "idle" | "walking" | "running" | "attacking";
 
-// NEW: Define a simple rectangle interface for hitboxes
 interface Hitbox {
   x: number;
   y: number;
@@ -40,10 +37,7 @@ export class Player {
   private width: number;
   private height: number;
 
-  private idleImage: HTMLImageElement;
-  private walkImage: HTMLImageElement;
-  private runImage: HTMLImageElement;
-  private attackImage: HTMLImageElement;
+  private spriteSheets: Map<string, HTMLImageElement>;
   private currentImage: HTMLImageElement;
   private state: PlayerState;
   private frameX: number;
@@ -51,10 +45,9 @@ export class Player {
   private animationTimer: number;
   private animationInterval: number;
 
-  private lastAttackTime: number;
-  private attackCooldown: number;
-  private attackSpeed: number;
-  private attackHitbox: Hitbox | null = null; // NEW: To store the current attack hitbox for debugging
+  private skillCooldowns: Map<string, number>;
+  private baseAttackCooldownMultiplier: number = 1.0;
+  private attackHitbox: Hitbox | null = null;
 
   constructor(mapManager: MapManager, entityManager: EntityManager) {
     this.mapManager = mapManager;
@@ -62,31 +55,42 @@ export class Player {
     this.scaleFactor = PLAYER_SCALE_FACTOR;
     this.speed = PLAYER_WALK_SPEED;
 
-    this.idleImage = document.getElementById(
-      "playerIdleSprite"
-    ) as HTMLImageElement;
-    this.walkImage = document.getElementById(
-      "playerWalkSprite"
-    ) as HTMLImageElement;
-    this.runImage = document.getElementById(
-      "playerRunSprite"
-    ) as HTMLImageElement;
-    this.attackImage = document.getElementById(
-      "playerAttackSprite"
-    ) as HTMLImageElement;
+    this.spriteSheets = new Map();
+    for (const skillKey in PlayerSkills) {
+      const skill = PlayerSkills[skillKey];
+      const imageElement = document.getElementById(
+        skill.spriteSheetId
+      ) as HTMLImageElement;
+      if (imageElement) {
+        this.spriteSheets.set(skillKey, imageElement);
+      }
+    }
+    // Also load the base sprites
+    this.spriteSheets.set(
+      "idle",
+      document.getElementById("playerIdleSprite") as HTMLImageElement
+    );
+    this.spriteSheets.set(
+      "walk",
+      document.getElementById("playerWalkSprite") as HTMLImageElement
+    );
+    this.spriteSheets.set(
+      "run",
+      document.getElementById("playerRunSprite") as HTMLImageElement
+    );
 
     const spawnPoint = this.mapManager.findObjectByName("playerSpawn");
     if (spawnPoint) {
       this.worldX = spawnPoint.x;
       this.worldY = spawnPoint.y;
     } else {
-      console.warn("Player spawn point not found. Defaulting to center.");
+      console.warn("Player spawn point not found.");
       this.worldX = this.mapManager.mapPixelWidth / 2;
       this.worldY = this.mapManager.mapPixelHeight / 2;
     }
 
     this.state = "idle";
-    this.currentImage = this.idleImage;
+    this.currentImage = this.spriteSheets.get("idle")!;
     this.frameX = 0;
     this.frameY = 0;
     this.animationTimer = 0;
@@ -95,21 +99,21 @@ export class Player {
     this.width = PLAYER_SPRITE_WIDTH * this.scaleFactor;
     this.height = PLAYER_SPRITE_HEIGHT * this.scaleFactor;
 
-    this.lastAttackTime = 0;
-    this.attackCooldown = PLAYER_BASE_ATTACK_COOLDOWN;
-    this.attackSpeed = PLAYER_BASE_ATTACK_SPEED;
+    this.skillCooldowns = new Map();
+    for (const skillKey in PlayerSkills) {
+      this.skillCooldowns.set(skillKey, 0);
+    }
   }
 
-  // --- NEW: Public Getters for UI ---
-  public getLastAttackTime(): number {
-    return this.lastAttackTime;
+  public getLastAttackTime(skillKey: string): number {
+    return this.skillCooldowns.get(skillKey) || 0;
+  }
+  public getAttackCooldown(skillKey: string): number {
+    const skill = PlayerSkills[skillKey];
+    return skill ? skill.cooldown * this.baseAttackCooldownMultiplier : 0;
   }
 
-  public getAttackCooldown(): number {
-    return this.attackCooldown;
-  }
-
-  public update(input: InputHandler, deltaTime: number): void {
+  public update(input: InputManager, deltaTime: number): void {
     if (!deltaTime) return;
     this.updateScaledSize();
     const moveVector = this.handleInput(input);
@@ -127,14 +131,16 @@ export class Player {
     }
   }
 
-  private handleInput(input: InputHandler): { x: number; y: number } {
+  private handleInput(input: InputManager): { x: number; y: number } {
     if (this.state === "attacking") {
       return { x: 0, y: 0 };
     }
-    if (input.attackPressed && this.canAttack()) {
-      this.performAttack("basic");
+
+    if (input.skillJustPressed && this.canAttack(input.skillJustPressed)) {
+      this.performAttack(input.skillJustPressed);
       return { x: 0, y: 0 };
     }
+
     const direction = input.direction;
     const isRunning = input.isRunning;
     let newState: PlayerState = "idle";
@@ -144,8 +150,9 @@ export class Player {
       newState = "walking";
     }
     this.setState(newState);
-    let moveX = 0;
-    let moveY = 0;
+
+    let moveX = 0,
+      moveY = 0;
     if (input.direction) {
       switch (input.direction) {
         case "down":
@@ -162,6 +169,7 @@ export class Player {
           break;
       }
     }
+
     if (this.state === "walking" || this.state === "running") {
       switch (input.direction) {
         case "down":
@@ -185,68 +193,67 @@ export class Player {
     if (this.state === newState) return;
     this.state = newState;
     this.frameX = 0;
+    this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+
     switch (this.state) {
       case "idle":
         this.speed = 0;
-        this.currentImage = this.idleImage;
-        this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+        this.currentImage = this.spriteSheets.get("idle")!;
         break;
       case "walking":
         this.speed = PLAYER_WALK_SPEED;
-        this.currentImage = this.walkImage;
-        this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+        this.currentImage = this.spriteSheets.get("walk")!;
         break;
       case "running":
         this.speed = PLAYER_RUN_SPEED;
-        this.currentImage = this.runImage;
-        this.animationInterval = 1000 / PLAYER_ANIMATION_SPEED;
+        this.currentImage = this.spriteSheets.get("run")!;
         break;
     }
   }
 
-  private performAttack(attackType: string): void {
+  private performAttack(skillKey: string): void {
+    const skill = PlayerSkills[skillKey];
+    if (!skill) return;
+
     this.state = "attacking";
     this.frameX = 0;
-    this.lastAttackTime = Date.now();
-    this.currentImage = this.attackImage;
+    this.skillCooldowns.set(skillKey, Date.now());
+    this.currentImage = this.spriteSheets.get(skillKey)!;
     this.speed = 0;
-    this.animationInterval = 1000 / this.attackSpeed;
+    this.animationInterval = 1000 / skill.animationSpeed;
 
-    // --- UPDATED: Precise Hitbox Calculation ---
     const hitbox: Hitbox = { x: 0, y: 0, width: 0, height: 0 };
     const playerLeft = this.worldX - this.width / 2;
     const playerTop = this.worldY - this.height / 2;
 
-    // frameY: 0=down, 1=left, 2=right, 3=up
     switch (this.frameY) {
-      case 0: // Down
+      case 0:
         hitbox.width = this.width;
         hitbox.height = this.height / 2;
         hitbox.x = playerLeft;
-        hitbox.y = this.worldY; // Start at player's vertical center
+        hitbox.y = this.worldY;
         break;
-      case 1: // Left
+      case 1:
         hitbox.width = this.width / 2;
         hitbox.height = this.height;
         hitbox.x = playerLeft;
         hitbox.y = playerTop;
         break;
-      case 2: // Right
+      case 2:
         hitbox.width = this.width / 2;
         hitbox.height = this.height;
-        hitbox.x = this.worldX; // Start at player's horizontal center
+        hitbox.x = this.worldX;
         hitbox.y = playerTop;
         break;
-      case 3: // Up
+      case 3:
         hitbox.width = this.width;
         hitbox.height = this.height / 2;
         hitbox.x = playerLeft;
         hitbox.y = playerTop;
         break;
     }
-    this.attackHitbox = hitbox; // Save for debugging
+    this.attackHitbox = hitbox;
 
-    // Check for collision with each enemy using the new hitbox
     for (const enemy of this.entityManager.enemies) {
       const enemyLeft = enemy.worldX - enemy.width / 2;
       const enemyTop = enemy.worldY - enemy.height / 2;
@@ -256,14 +263,15 @@ export class Player {
         hitbox.y < enemyTop + enemy.height &&
         hitbox.y + hitbox.height > enemyTop
       ) {
-        enemy.takeDamage(25);
+        enemy.takeDamage(skill.damage);
       }
     }
   }
 
-  private canAttack(): boolean {
-    const now = Date.now();
-    return now - this.lastAttackTime > this.attackCooldown;
+  private canAttack(skillKey: string): boolean {
+    const lastUse = this.skillCooldowns.get(skillKey) || 0;
+    const cooldown = this.getAttackCooldown(skillKey);
+    return Date.now() - lastUse > cooldown;
   }
 
   private updateAnimation(deltaTime: number): void {
@@ -283,12 +291,17 @@ export class Player {
           frameCount = PLAYER_RUN_FRAME_COUNT;
           break;
         case "attacking":
-          frameCount = PLAYER_ATTACK_FRAME_COUNT;
+          for (const key in PlayerSkills) {
+            if (this.currentImage === this.spriteSheets.get(key)) {
+              frameCount = PlayerSkills[key].frameCount;
+              break;
+            }
+          }
           break;
       }
       if (this.frameX >= frameCount) {
         if (this.state === "attacking") {
-          this.attackHitbox = null; // Clear hitbox after attack
+          this.attackHitbox = null;
           this.setState("idle");
         } else {
           this.frameX = 0;
@@ -300,25 +313,9 @@ export class Player {
   private drawDebugInfo(context: CanvasRenderingContext2D): void {
     const drawX = this.worldX - this.width / 2;
     const drawY = this.worldY - this.height / 2;
-
-    // Draw the collision box
     context.strokeStyle = "red";
     context.lineWidth = 2;
     context.strokeRect(drawX, drawY, this.width, this.height);
-
-    // Draw the attack cooldown
-    const now = Date.now();
-    const remainingCooldown = Math.max(
-      0,
-      this.lastAttackTime + this.attackCooldown - now
-    );
-    const remainingSeconds = (remainingCooldown / 1000).toFixed(1);
-    context.fillStyle = "white";
-    context.font = "14px Arial";
-    context.textAlign = "center";
-    context.fillText(`Cooldown: ${remainingSeconds}s`, this.worldX, drawY - 10);
-
-    // NEW: Draw the attack hitbox when attacking
     if (this.state === "attacking" && this.attackHitbox) {
       context.strokeStyle = "cyan";
       context.lineWidth = 1;

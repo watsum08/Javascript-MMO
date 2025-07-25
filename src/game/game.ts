@@ -1,6 +1,6 @@
 import { CANVAS_ZOOM } from "./constants";
 import { EntityManager } from "./entityManager";
-import { InputHandler } from "./inputManager";
+import { InputManager } from "./inputManager";
 import { MapManager } from "./mapManager";
 import { Player } from "./player";
 import { UIManager } from "./uiManager";
@@ -12,7 +12,7 @@ interface Camera {
 
 export class Game {
   public player: Player;
-  public input: InputHandler;
+  public input: InputManager;
   public camera: Camera;
 
   public canvasWidth: number;
@@ -22,9 +22,9 @@ export class Game {
   private entityManager: EntityManager;
   private uiManager: any;
 
-  constructor(inputHandler: InputHandler) {
-    // Use the inputHandler passed from main.ts
-    this.input = inputHandler;
+  constructor(InputManager: InputManager) {
+    // Use the InputManager passed from main.ts
+    this.input = InputManager;
 
     // Create the mapManager ONCE
     this.mapManager = new MapManager();
@@ -88,6 +88,6 @@ export class Game {
     context.restore();
 
     // 4. Draw the UI on top of everything, not affected by the camera
-    this.uiManager.draw(context, this.player);
+    this.uiManager.draw(context, this.player, this.input);
   }
 }
