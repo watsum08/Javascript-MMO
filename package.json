@@ -8,8 +8,9 @@
     "dev:css": "tailwindcss -i ./src/input.css -o ./dist/style.css --watch",
     "dev": "concurrently \"yarn dev:css\" \"yarn dev:server\"",
     "start": "node dist/server.js",
-    "build": "rimraf ./dist && tsc && tsc-alias && yarn build:assets",
-    "build:assets": "cp -r ./public/. ./dist/ && tailwindcss -o ./dist/style.css"
+    "build": "rimraf ./dist && tsc && tsc-alias && cp -r ./public/. ./dist/",
+    "build:assets": "tailwindcss -o ./dist/style.css",
+    "go": "yarn build && yarn start"
   },
   "dependencies": {
     "express": "^4.19.2"

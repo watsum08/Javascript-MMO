@@ -46,6 +46,10 @@ window.addEventListener("load", function () {
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
             <img id="playerAttackSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Attack_full.png">
             <img id="playerHeavyAttackSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_Attack_full.png">
+            <img id="blue-slime-idle-sprite" src="assets/sprites/player/Swordsman_lvl2/Swordsman_lvl2_Idle_full.png">
+            <img id="blue-slime-walk-sprite" src="assets/sprites/player/Swordsman_lvl2/Swordsman_lvl2_Walk_full.png">
+            <img id="red-demon-idle-sprite" src="assets/sprites/player/Swordsman_lvl3/Swordsman_lvl3_Idle_full.png">
+            <img id="red-demon-walk-sprite" src="assets/sprites/player/Swordsman_lvl3/Swordsman_lvl3_Walk_full.png">
             <audio id="backgroundMusic" src="assets/audio/background_music.mp3" preload="auto"></audio>
         `;
         document.body.appendChild(assets);
@@ -55,6 +59,12 @@ window.addEventListener("load", function () {
         const playerIdleSprite = document.getElementById("playerIdleSprite");
         const playerWalkSprite = document.getElementById("playerWalkSprite");
         const playerRunSprite = document.getElementById("playerRunSprite");
+        const playerAttackSprite = document.getElementById("playerAttackSprite");
+        const playerHeavyAttackSprite = document.getElementById("playerHeavyAttackSprite");
+        const blueSlimeIdleSprite = document.getElementById("blue-slime-idle-sprite");
+        const blueSlimeWalkSprite = document.getElementById("blue-slime-walk-sprite");
+        const redDemonIdleSprite = document.getElementById("red-demon-idle-sprite");
+        const redDemonWalkSprite = document.getElementById("red-demon-walk-sprite");
         // 4. Get the audio element
         const backgroundMusic = document.getElementById("backgroundMusic");
         const allImages = [
@@ -62,6 +72,12 @@ window.addEventListener("load", function () {
             playerIdleSprite,
             playerWalkSprite,
             playerRunSprite,
+            playerAttackSprite,
+            playerHeavyAttackSprite,
+            blueSlimeIdleSprite,
+            blueSlimeWalkSprite,
+            redDemonIdleSprite,
+            redDemonWalkSprite,
         ];
         const totalAssets = allImages.length + 1; // +1 for the audio file
         let loadedAssets = 0;

@@ -292,7 +292,7 @@ export class Player {
                 break;
         }
         this.attackHitbox = hitbox;
-        for (const enemy of this.entityManager.enemies) {
+        for (const enemy of this.entityManager.getEnemies()) {
             const enemyLeft = enemy.worldX - enemy.width / 2;
             const enemyTop = enemy.worldY - enemy.height / 2;
             if (hitbox.x < enemyLeft + enemy.width &&

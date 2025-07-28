@@ -1,4 +1,5 @@
 import { CANVAS_ZOOM } from "./constants";
+import { Enemy } from "./enemy";
 import { EntityManager } from "./entityManager";
 import { InputManager } from "./inputManager";
 import { MapManager } from "./mapManager";
@@ -28,7 +29,7 @@ export class Game {
 
     // Create the mapManager ONCE
     this.mapManager = new MapManager();
-    this.entityManager = new EntityManager(); // 3. Create an instance of the entity manager
+    this.entityManager = new EntityManager(this.mapManager); // 3. Create an instance of the entity manager
     this.uiManager = new UIManager(); // 3. Create an instance of the UI manager
 
     // load base map
@@ -41,6 +42,12 @@ export class Game {
 
     this.canvasWidth = window.innerWidth / CANVAS_ZOOM;
     this.canvasHeight = window.innerHeight / CANVAS_ZOOM;
+
+    this.entityManager.spawn("red_demon", 100, 200);
+    const enemy1 = this.entityManager.spawn("blue_slime", 200, 200);
+    if (enemy1 instanceof Enemy) {
+      enemy1.moveTo(0, 0);
+    }
   }
 
   update(deltaTime: number): void {

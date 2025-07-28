@@ -17,13 +17,11 @@ export const PLAYER_SPRITE_WIDTH = 32;
 export const PLAYER_SPRITE_HEIGHT = 32;
 export const PLAYER_SPRITE_PADDING = 16;
 export const PLAYER_SPRITE_GAP = 32;
-export const PLAYER_SCALE_FACTOR = 1;
-export const PLAYER_FEET_OFFSET_Y = 28; // Adjust this value to match your sprite's feet
+export const PLAYER_SCALE_FACTOR = 1.5;
 export const PLAYER_ANIMATION_SPEED = 8;
 export const PLAYER_IDLE_FRAME_COUNT = 12; // Frames in the idle animation
 export const PLAYER_WALK_FRAME_COUNT = 6; // Frames in the walking animation
 export const PLAYER_RUN_FRAME_COUNT = 8; // The number of frames in your run animation
-export const PLAYER_ATTACK_FRAME_COUNT = 8;
 // --- Player Stats ---
 export const PLAYER_BASE_HEALTH = 150;
 export const PLAYER_BASE_MANA = 100;
@@ -31,3 +29,12 @@ export const PLAYER_BASE_HEALTH_REGEN = 1.5; // Health per second
 export const PLAYER_BASE_MANA_REGEN = 1; // Mana per second
 export const PLAYER_BASE_ATTACK_COOLDOWN = 5000;
 export const PLAYER_BASE_ATTACK_SPEED = 10;
+// --- NEW: Enemy Sprite Constants ---
+export const ENEMY_SPRITE_WIDTH = 32;
+export const ENEMY_SPRITE_HEIGHT = 32;
+export const ENEMY_SCALE_FACTOR = 1;
+export const ENEMY_ANIMATION_SPEED = 6; // Frames per second
+export const ENEMY_IDLE_FRAME_COUNT = 12;
+export const ENEMY_WALK_FRAME_COUNT = 6;
+export const ENEMY_SPRITE_PADDING = 16; // NEW: Padding around each sprite
+export const ENEMY_SPRITE_GAP = 32; // NEW: Gap between each sprite
