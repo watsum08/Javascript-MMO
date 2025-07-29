@@ -18,7 +18,7 @@ export const EnemyTypes: Record<string, EnemyType> = {
     width: 32,
     height: 32,
     color: "#3498db", // A nice blue color
-    movementType: "stationary",
+    movementType: "wander_cardinal",
     idleSpriteSheetId: "blue-slime-idle-sprite",
     walkSpriteSheetId: "blue-slime-walk-sprite",
     combatSpriteSheetId: "blue-slime-idle-sprite",

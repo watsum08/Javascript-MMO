@@ -27,6 +27,14 @@ export class Enemy extends GameObject {
   private lastDamageTime: number = 0;
   private combatTimeout: number = 5000;
 
+  // 1. Keep track of the last “locked” target:
+  private lastLockedTargetX: number;
+  private lastLockedTargetY: number;
+
+  // in Enemy class:
+  private readonly minBurst = 200; // ms
+  private readonly maxBurst = 500; // ms
+
   // --- Animation Properties ---
   private spriteSheets: Map<string, HTMLImageElement>;
   private currentSpriteSheet: HTMLImageElement;
@@ -45,9 +53,8 @@ export class Enemy extends GameObject {
   private wanderTimer: number = 0;
   private healthRegenPerSec: number;
 
-  // --- Properties for Alternating Cardinal Movement ---
+  // --- NEW: Properties for Timed Cardinal Movement ---
   private cardinalMoveTimer: number = 0;
-  private readonly cardinalMoveDuration = 1000; // 500ms bursts
   private currentMoveAxis: "horizontal" | "vertical" = "horizontal";
 
   constructor(
@@ -95,6 +102,9 @@ export class Enemy extends GameObject {
     this.moveTargetX = x;
     this.moveTargetY = y;
     this.healthRegenPerSec = this.maxHealth * 0.01;
+
+    this.lastLockedTargetX = x;
+    this.lastLockedTargetY = y;
   }
 
   public update(deltaTime: number): void {
@@ -109,19 +119,26 @@ export class Enemy extends GameObject {
     this.move(deltaTime);
   }
 
-  // --- Public method to command the enemy to a specific point ---
+  // 2. Update moveTo() so it only resets on a significant change:
   public moveTo(x: number, y: number): void {
+    // Always update the raw target coords
     this.moveTargetX = x;
     this.moveTargetY = y;
-    this.clampMoveTarget(false); // Do NOT enforce the wander zone for direct commands
+    this.clampMoveTarget(false);
     this.setState("wandering");
 
-    // Reset movement state for the new path
-    this.cardinalMoveTimer = this.cardinalMoveDuration;
-    const dx = this.moveTargetX - this.worldX;
-    const dy = this.moveTargetY - this.worldY;
-    this.currentMoveAxis =
-      Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+    // If the “locked” target hasn’t moved by at least 1px, bail out
+    const dx = x - this.lastLockedTargetX;
+    const dy = y - this.lastLockedTargetY;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+      // only the raw target changed by <1px, so don’t reset the timer
+      return;
+    }
+
+    // Otherwise it’s a new “burst,” so lock it and reset the axis+timer
+    this.lastLockedTargetX = this.moveTargetX;
+    this.lastLockedTargetY = this.moveTargetY;
+    this.resetMovementPath();
   }
 
   private updateAnimation(deltaTime: number): void {
@@ -130,7 +147,6 @@ export class Enemy extends GameObject {
       this.animationTimer = 0;
       this.frameX++;
 
-      // Use the correct frame count based on the current state
       const frameCount =
         this.state === "idle" || this.state === "in_combat"
           ? ENEMY_IDLE_FRAME_COUNT
@@ -161,12 +177,10 @@ export class Enemy extends GameObject {
     }
   }
 
-  // Centralized state-setting function to manage sprite sheet changes
   private setState(newState: EnemyState): void {
     if (this.state === newState) return;
-
     this.state = newState;
-    this.frameX = 0; // Reset animation on state change
+    this.frameX = 0;
 
     switch (newState) {
       case "idle":
@@ -181,79 +195,104 @@ export class Enemy extends GameObject {
     }
   }
 
-  private move(deltaTime: number): void {
-    if (this.state === "idle" || this.state === "in_combat") return;
+  // helper to factor out collision checks + sprite‐direction
+  private tryMove(deltaX: number, deltaY: number): boolean {
+    const nextX = this.worldX + deltaX;
+    const nextY = this.worldY + deltaY;
+
+    const canMoveX =
+      deltaX === 0 ||
+      (!this.mapManager.isAreaSolid(
+        nextX + (deltaX > 0 ? this.width / 2 : -this.width / 2),
+        this.worldY - this.height / 2,
+        1,
+        this.height
+      ) &&
+        !this.isCollidingWithObject(nextX, this.worldY));
+
+    const canMoveY =
+      deltaY === 0 ||
+      (!this.mapManager.isAreaSolid(
+        this.worldX - this.width / 2,
+        nextY + (deltaY > 0 ? this.height / 2 : -this.height / 2),
+        this.width,
+        1
+      ) &&
+        !this.isCollidingWithObject(this.worldX, nextY));
+
+    if (deltaX !== 0 && canMoveX) {
+      this.worldX = nextX;
+      this.frameY = deltaX > 0 ? 2 : 1;
+      return true;
+    } else if (deltaY !== 0 && canMoveY) {
+      this.worldY = nextY;
+      this.frameY = deltaY > 0 ? 0 : 3;
+      return true;
+    }
+
+    // couldn't move
+    return false;
+  }
+
+  public move(deltaTime: number): void {
+    if (this.state !== "wandering") return;
 
     const dx = this.moveTargetX - this.worldX;
     const dy = this.moveTargetY - this.worldY;
-
     if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
       this.setState("idle");
       return;
     }
 
+    // countdown burst timer
     this.cardinalMoveTimer -= deltaTime;
-
-    // Switch axis if timer expires or if we've reached the target on the current axis
-    if (
-      this.cardinalMoveTimer <= 0 ||
-      (this.currentMoveAxis === "horizontal" && Math.abs(dx) < 2) ||
-      (this.currentMoveAxis === "vertical" && Math.abs(dy) < 2)
-    ) {
-      this.cardinalMoveTimer = this.cardinalMoveDuration;
-      // Switch to the other axis
-      this.currentMoveAxis =
-        this.currentMoveAxis === "horizontal" ? "vertical" : "horizontal";
+    if (this.cardinalMoveTimer <= 0) {
+      this.switchMoveAxis();
     }
 
     const moveAmount = this.speed * (deltaTime / 1000);
     let moved = false;
 
-    // --- Move on the current designated axis ---
+    // attempt current axis
     if (this.currentMoveAxis === "horizontal" && Math.abs(dx) > 1) {
-      const moveX = Math.sign(dx) * Math.min(moveAmount, Math.abs(dx));
-      const nextX = this.worldX + moveX;
-      this.frameY = dx > 0 ? 2 : 1; // 2=right, 1=left
-
-      const checkX =
-        moveX > 0 ? nextX + this.width / 2 : nextX - this.width / 2;
-      if (
-        !this.mapManager.isAreaSolid(
-          checkX,
-          this.worldY - this.height / 2,
-          1,
-          this.height
-        ) &&
-        !this.isCollidingWithObject(nextX, this.worldY)
-      ) {
-        this.worldX = nextX;
-        moved = true;
-      }
+      const stepX = Math.sign(dx) * Math.min(moveAmount, Math.abs(dx));
+      moved = this.tryMove(stepX, 0);
     } else if (this.currentMoveAxis === "vertical" && Math.abs(dy) > 1) {
-      const moveY = Math.sign(dy) * Math.min(moveAmount, Math.abs(dy));
-      const nextY = this.worldY + moveY;
-      this.frameY = dy > 0 ? 0 : 3; // 0=down, 3=up
+      const stepY = Math.sign(dy) * Math.min(moveAmount, Math.abs(dy));
+      moved = this.tryMove(0, stepY);
+    }
 
-      const checkY =
-        moveY > 0 ? nextY + this.height / 2 : nextY - this.height / 2;
-      if (
-        !this.mapManager.isAreaSolid(
-          this.worldX - this.width / 2,
-          checkY,
-          this.width,
-          1
-        ) &&
-        !this.isCollidingWithObject(this.worldX, nextY)
-      ) {
-        this.worldY = nextY;
-        moved = true;
+    // if blocked on your axis, flip & try the other one
+    if (!moved) {
+      const originalAxis = this.currentMoveAxis;
+      const flipped = originalAxis === "horizontal" ? "vertical" : "horizontal";
+      this.currentMoveAxis = flipped;
+
+      if (flipped === "horizontal" && Math.abs(dx) > 1) {
+        const stepX = Math.sign(dx) * Math.min(moveAmount, Math.abs(dx));
+        moved = this.tryMove(stepX, 0);
+      } else if (flipped === "vertical" && Math.abs(dy) > 1) {
+        const stepY = Math.sign(dy) * Math.min(moveAmount, Math.abs(dy));
+        moved = this.tryMove(0, stepY);
+      }
+
+      // if that second axis move succeeded, keep the new axis and reset burst timer
+      if (moved) {
+        this.resetMovementPath(); // optionally you can give a fresh burst on the new axis
+      } else {
+        // still didn't move → truly stuck, pick a new wander point
+        this.findNewWanderTarget();
       }
     }
+  }
 
-    // If we were supposed to move but couldn't, find a new target
-    if (!moved) {
-      this.findNewWanderTarget();
-    }
+  private switchMoveAxis(): void {
+    // flip axis
+    this.currentMoveAxis =
+      this.currentMoveAxis === "horizontal" ? "vertical" : "horizontal";
+    // new random burst, 200–500 ms
+    this.cardinalMoveTimer =
+      this.minBurst + Math.random() * (this.maxBurst - this.minBurst);
   }
 
   private wanderCardinal(deltaTime: number): void {
@@ -274,13 +313,23 @@ export class Enemy extends GameObject {
       targetY = this.spawnY + (Math.random() - 0.5) * 2 * wanderRadius;
     }
     this.wanderTimer = 2000 + Math.random() * 3000;
-    // Use the public moveTo function to start the new path
     this.moveTo(targetX, targetY);
+  }
+
+  private resetMovementPath(): void {
+    // choose burst length between minBurst and maxBurst
+    this.cardinalMoveTimer =
+      this.minBurst + Math.random() * (this.maxBurst - this.minBurst);
+
+    const dx = this.moveTargetX - this.worldX;
+    const dy = this.moveTargetY - this.worldY;
+    // tie‐breaker: exactly diagonal → start horizontal
+    this.currentMoveAxis =
+      Math.abs(dx) >= Math.abs(dy) ? "horizontal" : "vertical";
   }
 
   public draw(context: CanvasRenderingContext2D): void {
     this.drawSprite(context);
-
     if (DEBUG_MODE) {
       this.drawDebugInfo(context);
     } else if (this.state === "in_combat") {
@@ -291,10 +340,8 @@ export class Enemy extends GameObject {
   private drawSprite(context: CanvasRenderingContext2D): void {
     const drawX = this.worldX - this.width / 2;
     const drawY = this.worldY - this.height / 2;
-
     const strideX = ENEMY_SPRITE_WIDTH + ENEMY_SPRITE_GAP;
     const strideY = ENEMY_SPRITE_HEIGHT + ENEMY_SPRITE_GAP;
-
     context.drawImage(
       this.currentSpriteSheet,
       ENEMY_SPRITE_PADDING + this.frameX * strideX,
@@ -309,13 +356,11 @@ export class Enemy extends GameObject {
   }
 
   private drawDebugInfo(context: CanvasRenderingContext2D): void {
-    // Draw collision box
     const drawX = this.worldX - this.width / 2;
     const drawY = this.worldY - this.height / 2;
     context.strokeStyle = "blue";
     context.lineWidth = 1;
     context.strokeRect(drawX, drawY, this.width, this.height);
-
     this.drawHealthBar(context);
   }
 
@@ -323,7 +368,6 @@ export class Enemy extends GameObject {
     const healthBarWidth = this.width;
     const healthBarHeight = 5;
     const healthPercentage = this.health / this.maxHealth;
-
     context.fillStyle = "red";
     context.fillRect(
       this.worldX - this.width / 2,
@@ -331,7 +375,6 @@ export class Enemy extends GameObject {
       healthBarWidth,
       healthBarHeight
     );
-
     context.fillStyle = "green";
     context.fillRect(
       this.worldX - this.width / 2,
@@ -373,7 +416,6 @@ export class Enemy extends GameObject {
     return false;
   }
 
-  // UPDATED: This now accepts a boolean to control wander zone enforcement
   private clampMoveTarget(enforceWanderZone: boolean): void {
     if (enforceWanderZone) {
       const dx = this.moveTargetX - this.spawnX;
@@ -386,8 +428,6 @@ export class Enemy extends GameObject {
           this.spawnY + (dy / distFromSpawn) * this.wanderZoneRadius;
       }
     }
-
-    // Always clamp to map boundaries
     this.moveTargetX = Math.max(
       this.width / 2,
       Math.min(this.moveTargetX, this.mapManager.mapPixelWidth - this.width / 2)

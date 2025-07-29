@@ -1,9 +1,5 @@
 import { AudioManager } from "./audioManager"; // 1. Import AudioManager
-import {
-  CANVAS_ZOOM,
-  PLACEHOLDER_IMAGE_SRC,
-  TILESET_IMAGE_SRC,
-} from "./constants";
+import { CANVAS_ZOOM, PLACEHOLDER_IMAGE_SRC } from "./constants";
 import { DebugManager } from "./debugManager";
 import { Game } from "./game";
 import { InputManager } from "./inputManager";
@@ -59,7 +55,8 @@ window.addEventListener("load", function () {
     const assets = document.createElement("div");
     assets.style.display = "none";
     assets.innerHTML = `
-            <img id="tileset" src="${TILESET_IMAGE_SRC}">
+            <img id="slates_v2" src="assets/sprites/maps/slates_v2.png">
+            <img id="town_multi" src="assets/sprites/maps/town_multi.png">
             <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
             <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
@@ -76,7 +73,12 @@ window.addEventListener("load", function () {
     // 3. Create an instance of the AudioManager
     const audioManager = new AudioManager();
 
-    const tileset = document.getElementById("tileset") as HTMLImageElement;
+    const tilesetSlates = document.getElementById(
+      "slates_v2"
+    ) as HTMLImageElement;
+    const tilesetTown = document.getElementById(
+      "town_multi"
+    ) as HTMLImageElement;
     const playerIdleSprite = document.getElementById(
       "playerIdleSprite"
     ) as HTMLImageElement;
@@ -113,7 +115,8 @@ window.addEventListener("load", function () {
     ) as HTMLAudioElement;
 
     const allImages = [
-      tileset,
+      tilesetSlates,
+      tilesetTown,
       playerIdleSprite,
       playerWalkSprite,
       playerRunSprite,

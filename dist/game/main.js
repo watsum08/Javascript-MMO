@@ -1,5 +1,5 @@
 import { AudioManager } from "./audioManager.js"; // 1. Import AudioManager
-import { CANVAS_ZOOM, PLACEHOLDER_IMAGE_SRC, TILESET_IMAGE_SRC, } from "./constants.js";
+import { CANVAS_ZOOM, PLACEHOLDER_IMAGE_SRC } from "./constants.js";
 import { DebugManager } from "./debugManager.js";
 import { Game } from "./game.js";
 import { InputManager } from "./inputManager.js";
@@ -40,7 +40,8 @@ window.addEventListener("load", function () {
         const assets = document.createElement("div");
         assets.style.display = "none";
         assets.innerHTML = `
-            <img id="tileset" src="${TILESET_IMAGE_SRC}">
+            <img id="slates_v2" src="assets/sprites/maps/slates_v2.png">
+            <img id="town_multi" src="assets/sprites/maps/town_multi.png">
             <img id="playerIdleSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Idle_full.png">
             <img id="playerWalkSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Walk_full.png">
             <img id="playerRunSprite" src="assets/sprites/player/Swordsman_lvl1/Swordsman_lvl1_Run_full.png">
@@ -55,7 +56,8 @@ window.addEventListener("load", function () {
         document.body.appendChild(assets);
         // 3. Create an instance of the AudioManager
         const audioManager = new AudioManager();
-        const tileset = document.getElementById("tileset");
+        const tilesetSlates = document.getElementById("slates_v2");
+        const tilesetTown = document.getElementById("town_multi");
         const playerIdleSprite = document.getElementById("playerIdleSprite");
         const playerWalkSprite = document.getElementById("playerWalkSprite");
         const playerRunSprite = document.getElementById("playerRunSprite");
@@ -68,7 +70,8 @@ window.addEventListener("load", function () {
         // 4. Get the audio element
         const backgroundMusic = document.getElementById("backgroundMusic");
         const allImages = [
-            tileset,
+            tilesetSlates,
+            tilesetTown,
             playerIdleSprite,
             playerWalkSprite,
             playerRunSprite,

@@ -44,7 +44,7 @@ export class Game {
     this.canvasHeight = window.innerHeight / CANVAS_ZOOM;
 
     this.entityManager.spawn("red_demon", 100, 200);
-    const enemy1 = this.entityManager.spawn("blue_slime", 200, 200);
+    const enemy1 = this.entityManager.spawn("blue_slime", 16, 16);
     if (enemy1 instanceof Enemy) {
       enemy1.moveTo(0, 0);
     }
@@ -57,6 +57,11 @@ export class Game {
     this.player.update(this.input, deltaTime);
 
     this.entityManager.update(deltaTime);
+    this.entityManager.allObjects.forEach((obj) => {
+      if (obj.id === 2 && obj instanceof Enemy) {
+        obj.moveTo(this.player.worldX, this.player.worldY);
+      }
+    });
 
     // Update camera position based on the player
     this.camera.x = this.player.worldX - this.canvasWidth / 2;
