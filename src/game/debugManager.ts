@@ -38,7 +38,7 @@ export class DebugManager {
 
     // Draw InputManager state
     const keysText = "direction: " + `${this.InputManager.direction}`;
-    context.fillText(keysText, margin, 50);
+    context.fillText(keysText, this.game.canvasWidth - 90, 30);
 
     context.restore();
   }

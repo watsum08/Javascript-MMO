@@ -29,7 +29,7 @@ export class DebugManager {
         context.fillText(`FPS: ${this.fps}`, this.game.canvasWidth - 60, 15);
         // Draw InputManager state
         const keysText = "direction: " + `${this.InputManager.direction}`;
-        context.fillText(keysText, margin, 50);
+        context.fillText(keysText, this.game.canvasWidth - 90, 30);
         context.restore();
     }
 }

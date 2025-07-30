@@ -44,10 +44,8 @@ export class Game {
     this.canvasHeight = window.innerHeight / CANVAS_ZOOM;
 
     this.entityManager.spawn("red_demon", 100, 200);
-    const enemy1 = this.entityManager.spawn("blue_slime", 16, 16);
-    if (enemy1 instanceof Enemy) {
-      enemy1.moveTo(0, 0);
-    }
+    this.entityManager.spawn("red_demon", 600, 600);
+    this.entityManager.spawn("blue_slime", 16, 16);
   }
 
   update(deltaTime: number): void {
@@ -58,7 +56,7 @@ export class Game {
 
     this.entityManager.update(deltaTime);
     this.entityManager.allObjects.forEach((obj) => {
-      if (obj.id === 2 && obj instanceof Enemy) {
+      if ((obj instanceof Enemy && obj.id === 2) || obj instanceof Enemy && obj.id === 3) {
         obj.moveTo(this.player.worldX, this.player.worldY);
       }
     });
